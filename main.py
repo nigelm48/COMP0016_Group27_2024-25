@@ -1,6 +1,10 @@
+import os
 import torch
 from transformers import AutoTokenizer, AutoModelForCausalLM
 import pdfplumber
+from docx import Document
+import markdown
+import re
 
 model_path = 'gpt-neo-125M'
 model = AutoModelForCausalLM.from_pretrained(model_path)
@@ -17,6 +21,21 @@ def extract_text_from_pdf(pdf_path):
         for page in pdf.pages:
             text += page.extract_text()  # Extracts text for each page
     return text
+
+# Extract text from a Word document using python-docx
+def extract_text_from_docx(docx_path):
+    document = Document(docx_path)
+    return "\n".join([para.text for para in document.paragraphs if para.text.strip()])
+
+# Extract text from a Markdown file using markdown and remove HTML tags
+def extract_text_from_markdown(md_path):
+    with open(md_path, 'r', encoding='utf-8') as file:
+        md_content = file.read()
+    # Convert Markdown to HTML, then clean out HTML tags to get plain text
+    html_content = markdown.markdown(md_content)
+    # Remove HTML tags to produce clean text
+    plain_text = re.sub(r'<[^>]+>', '', html_content)
+    return plain_text
 
 # Chunk text into manageable sizes
 def chunk_text(text, chunk_size=256):
@@ -52,17 +71,47 @@ def generate_response(input_text):
 
     return trimmed_response
 
-# Load the PDF and process
-pdf_path = "file.pdf"  # Replace with your actual PDF path
-document_text = extract_text_from_pdf(pdf_path)
-text_chunks = chunk_text(document_text)
 
-# Print the first few chunks for inspection
-if text_chunks:
-    print("Extracted text:")
-    print(text_chunks[:1])  # Print the first chunk for a sample
-else:
-    print("No text extracted.")
+def process_documents(folder_path):
+    results = []
+    try:
+        files = os.listdir(folder_path)
+        if files:
+            for file_name in files:
+                file_path = os.path.join(folder_path, file_name)
+                try:
+                    if file_name.endswith('.pdf'):
+                        print(f"Processing PDF file: {file_name}")
+                        document_text = extract_text_from_pdf(file_path)
+                    elif file_name.endswith('.docx'):
+                        print(f"Processing Word document: {file_name}")
+                        document_text = extract_text_from_docx(file_path)
+                    elif file_name.endswith('.md'):
+                        print(f"Processing Markdown file: {file_name}")
+                        document_text = extract_text_from_markdown(file_path)
+                    else:
+                        results.append((file_name, "Unsupported file type"))
+                        continue
+
+                    # Chunk text for easier processing
+                    text_chunks = chunk_text(document_text)
+
+                    # Print text chunks to the console
+                    print(f"\nExtracted text from {file_name}:")
+                    for chunk in text_chunks:
+                        print(chunk)
+
+                    # Append success to results
+                    results.append((file_name, text_chunks))
+                except Exception as e:
+                    results.append((file_name, f"Error: {str(e)}"))
+        else:
+            results.append(("No files found", "Error: Folder is empty"))
+    except Exception as e:
+        results.append(("Error reading folder", f"Error: {str(e)}"))
+
+    return results
+
 
 # Example usage
 print(generate_response("What's the capital of France?"))
