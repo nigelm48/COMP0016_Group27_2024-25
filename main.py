@@ -6,7 +6,7 @@ from docx import Document
 import markdown
 import re
 
-model_path = 'gpt-neo-125M'
+model_path = 'llama3.2-1b'
 model = AutoModelForCausalLM.from_pretrained(model_path)
 tokenizer = AutoTokenizer.from_pretrained(model_path)
 
