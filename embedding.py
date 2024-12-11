@@ -9,7 +9,7 @@ class LocalHuggingFaceEmbeddings:
         self.model = self.model.to(self.device)
 
     def embed_documents(self, texts: list[str]) -> list[list[float]]:
-        
+       
         embeddings = []
         for text in texts:
             inputs = self.tokenizer(text, return_tensors="pt", truncation=True, max_length=512).to(self.device)
@@ -19,6 +19,15 @@ class LocalHuggingFaceEmbeddings:
                 embedding = hidden_states.mean(dim=1).squeeze().tolist()
                 embeddings.append(embedding)
         return embeddings
+
+    def embed_query(self, query: str) -> list[float]:
+  
+        inputs = self.tokenizer(query, return_tensors="pt", truncation=True, max_length=512).to(self.device)
+        with torch.no_grad():
+            outputs = self.model(**inputs, output_hidden_states=True)
+            hidden_states = outputs.hidden_states[-1]  
+            embedding = hidden_states.mean(dim=1).squeeze().tolist()
+        return embedding
 
 
 def embedding_function():

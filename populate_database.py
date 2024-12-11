@@ -1,19 +1,17 @@
 import argparse
 import os
 import shutil
-from langchain.document_loaders.pdf import PyPDFDirectoryLoader
+from langchain_community.document_loaders import PyPDFDirectoryLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain.schema.document import Document
 from embedding import embedding_function
-from langchain.vectorstores.chroma import Chroma
+from langchain_community.vectorstores import Chroma
 from langchain_community.document_loaders import UnstructuredMarkdownLoader
 
 CHROMA_PATH = "chroma"
 DATA_PATH = "data"
 
-def main():
-
-    # Check if the database should be cleared (using the --clear flag).
+def add_documents_to_chroma(folder_path):
     parser = argparse.ArgumentParser()
     parser.add_argument("--reset", action="store_true", help="Reset the database.")
     args = parser.parse_args()
@@ -22,9 +20,9 @@ def main():
         clear_database()
 
     # Create (or update) the data store.
-    # documents = load_documents()
-    # chunks = split_documents(documents)
-    # add_to_chroma(chunks)
+    documents = load_pdf(folder_path)
+    chunks = split_documents(documents)
+    add_to_chroma(chunks)
 
 def load_pdf(path):
     document_loader = PyPDFDirectoryLoader(path)
