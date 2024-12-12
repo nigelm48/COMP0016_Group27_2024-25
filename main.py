@@ -1,4 +1,3 @@
-import os
 import tkinter as tk
 from tkinter import scrolledtext, filedialog
 import torch
@@ -70,7 +69,8 @@ def generate_response(input_text, context=""):
     last_period_index = answer.rfind(".")
     if last_period_index != -1:
         answer = answer[:last_period_index + 1]
-    " ".join(answer.split())
+    answer = answer.replace("\n", "").replace("\r", "").replace("\t", "")
+
     return answer
 
 # Function to send query from the GUI
