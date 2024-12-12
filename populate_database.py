@@ -105,5 +105,4 @@ def clear_database():
         shutil.rmtree(CHROMA_PATH)
 
 
-if __name__ == "__main__":
-    main()
+

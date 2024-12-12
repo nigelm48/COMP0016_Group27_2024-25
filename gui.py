@@ -1,6 +1,6 @@
 import tkinter as tk
 from tkinter import scrolledtext, filedialog
-from main import generate_response, extract_text_from_pdf, extract_text_from_docx, extract_text_from_markdown, chunk_text, process_documents
+from main import generate_response, process_documents
 import os
 
 def send_query():

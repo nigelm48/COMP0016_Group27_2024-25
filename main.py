@@ -53,7 +53,7 @@ def generate_response(input_text, context=""):
     with torch.no_grad():
         outputs = model.generate(
             **inputs,
-            max_new_tokens=150,
+            max_new_tokens=100,
             temperature=0.7,
             top_p=0.9,
             num_beams=3,
@@ -61,6 +61,10 @@ def generate_response(input_text, context=""):
         )
     generated_text = tokenizer.decode(outputs[0], skip_special_tokens=True)
     answer = generated_text[len(prompt):].strip()
+    answer.replace("\n", " ")
+    last_period_index = answer.rfind(".")
+    if last_period_index != -1:
+        answer = answer[:last_period_index + 1]
     return answer
 
 # Function to send query from the GUI
@@ -70,7 +74,6 @@ def send_query():
         output_box.insert(tk.END, f"You: {query}\n", "user")
         output_box.see(tk.END)
         similar_docs = retrieve_similar_documents(query)
-        print(similar_docs)
         context = "\n".join(similar_docs)
         response = generate_response(query, context=context)
         output_box.insert(tk.END, f"AI: {response}\n\n", "bot")
