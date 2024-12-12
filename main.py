@@ -10,7 +10,13 @@ from embedding import embedding_function
 
 # Initialize model and tokenizer
 model_path = 'llama3.2-1b'  # Replace with your model's path
-device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+if torch.cuda.is_available():
+    device = torch.device('cuda')
+elif torch.mps.is_available():
+    device = torch.device('mps')
+else:
+    device = torch.device('cpu')
+#device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 tokenizer = AutoTokenizer.from_pretrained(model_path)
 model = AutoModelForCausalLM.from_pretrained(model_path).to(device)
@@ -19,7 +25,7 @@ generator = pipeline(
     model=model,
     tokenizer=tokenizer,
     max_new_tokens=100,
-    device=0 if torch.cuda.is_available() else -1,
+    device=0 if torch.cuda.is_available() or torch.mps.is_available() else -1,
     pad_token_id=tokenizer.eos_token_id
 )
 
@@ -61,10 +67,10 @@ def generate_response(input_text, context=""):
         )
     generated_text = tokenizer.decode(outputs[0], skip_special_tokens=True)
     answer = generated_text[len(prompt):].strip()
-    answer.replace("\n", " ")
     last_period_index = answer.rfind(".")
     if last_period_index != -1:
         answer = answer[:last_period_index + 1]
+    " ".join(answer.split())
     return answer
 
 # Function to send query from the GUI
@@ -96,7 +102,7 @@ def browse_folder():
 
 # Create the main window
 root = tk.Tk()
-root.title("AI Assistant with GUI")
+root.title("AI RAG Assistant")
 
 # Output box (Scrollable)
 output_box = scrolledtext.ScrolledText(root, wrap=tk.WORD, height=20, width=60, state=tk.NORMAL)
