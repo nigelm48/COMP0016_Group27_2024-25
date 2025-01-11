@@ -2,7 +2,7 @@ import tkinter as tk
 from tkinter import scrolledtext, filedialog
 import torch
 from transformers import AutoTokenizer, AutoModelForCausalLM, pipeline
-from langchain.vectorstores import Chroma
+from langchain_chroma import Chroma
 from langchain.prompts import PromptTemplate
 from populate_database import add_documents_to_chroma
 from embedding import embedding_function
@@ -23,7 +23,7 @@ generator = pipeline(
     "text-generation",
     model=model,
     tokenizer=tokenizer,
-    max_new_tokens=100,
+    max_new_tokens=3000,
     device=0 if torch.cuda.is_available() or torch.mps.is_available() else -1,
     pad_token_id=tokenizer.eos_token_id
 )
