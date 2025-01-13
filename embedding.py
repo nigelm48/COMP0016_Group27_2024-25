@@ -46,5 +46,5 @@ class LocalHuggingFaceEmbeddings:
 
 
 def embedding_function():
-    model_path = "llama3.2-1b"  
+    model_path = "multilingual-e5-large"  #link: https://huggingface.co/intfloat/multilingual-e5-large/tree/main
     return LocalHuggingFaceEmbeddings(model_path)
