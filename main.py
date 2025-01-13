@@ -18,7 +18,10 @@ else:
 #device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 tokenizer = AutoTokenizer.from_pretrained(model_path)
-model = AutoModelForCausalLM.from_pretrained(model_path).to(device)
+model = AutoModelForCausalLM.from_pretrained(
+    model_path,
+    torch_dtype=torch.float16,  #reduce memory usage
+).to(device)
 generator = pipeline(
     "text-generation",
     model=model,
