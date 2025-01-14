@@ -2,13 +2,13 @@ import tkinter as tk
 from tkinter import scrolledtext, filedialog
 import torch
 from transformers import AutoTokenizer, AutoModelForCausalLM, pipeline
-from langchain.vectorstores import Chroma
+from langchain_chroma import Chroma
 from langchain.prompts import PromptTemplate
 from populate_database import add_documents_to_chroma
 from embedding import embedding_function
 
 # Initialize model and tokenizer
-model_path = 'llama3.2-1b'  # Replace with your model's path
+model_path = 'LLM_Model/ultra/llama3.2-11b'  # Replace with your model's path
 if torch.cuda.is_available():
     device = torch.device('cuda')
 elif torch.mps.is_available():
@@ -18,7 +18,10 @@ else:
 #device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 tokenizer = AutoTokenizer.from_pretrained(model_path)
-model = AutoModelForCausalLM.from_pretrained(model_path).to(device)
+model = AutoModelForCausalLM.from_pretrained(
+    model_path,
+    torch_dtype=torch.float16,  # Use float16 for faster inference
+).to(device)
 generator = pipeline(
     "text-generation",
     model=model,

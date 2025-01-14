@@ -6,12 +6,12 @@ class LocalHuggingFaceEmbeddings:
         self.tokenizer = AutoTokenizer.from_pretrained(model_path)
         self.tokenizer.pad_token = self.tokenizer.eos_token
         self.model = AutoModelForCausalLM.from_pretrained(model_path)
-        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        self.device = torch.device("cuda" if torch.cuda.is_available() else "mps" if torch.mps.is_available() else "cpu")
         self.model = self.model.to(self.device)
 
     def embed_documents(self, texts: list[str]) -> list[list[float]]:
         # Batch processing to reduce overhead
-        batch_size = 32  # Adjust based on your GPU/CPU memory
+        batch_size = 1  # Adjust based on your GPU/CPU memory
         embeddings = []
         
         for i in range(0, len(texts), batch_size):
@@ -46,5 +46,5 @@ class LocalHuggingFaceEmbeddings:
 
 
 def embedding_function():
-    model_path = "llama3.2-1b"  
+    model_path = "Embedding_Model/e5"  # Replace with your model's path
     return LocalHuggingFaceEmbeddings(model_path)
