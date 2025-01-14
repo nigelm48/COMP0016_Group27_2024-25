@@ -6,7 +6,12 @@ class LocalHuggingFaceEmbeddings:
         self.tokenizer = AutoTokenizer.from_pretrained(model_path)
         self.tokenizer.pad_token = self.tokenizer.eos_token
         self.model = AutoModelForCausalLM.from_pretrained(model_path)
-        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        if torch.cuda.is_available():
+            self.device = torch.device('cuda')
+        elif torch.mps.is_available():
+            self.device = torch.device('mps')
+        else:
+            self.device = torch.device('cpu')
         self.model = self.model.to(self.device)
 
     def embed_documents(self, texts: list[str]) -> list[list[float]]:
@@ -46,5 +51,5 @@ class LocalHuggingFaceEmbeddings:
 
 
 def embedding_function():
-    model_path = "multilingual-e5-large"  #link: https://huggingface.co/intfloat/multilingual-e5-large/tree/main
+    model_path = "multilingual-e5-large"  
     return LocalHuggingFaceEmbeddings(model_path)
