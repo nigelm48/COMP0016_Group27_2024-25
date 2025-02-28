@@ -8,7 +8,7 @@ from populate_database import add_documents_to_chroma
 from embedding import embedding_function
 
 # Initialize model and tokenizer
-model_path = 'LLM_Model/ultra/llama3.2-11b'  # Replace with your model's path
+model_path = 'llama3.2-1b'  # Replace with your model's path
 if torch.cuda.is_available():
     device = torch.device('cuda')
 elif torch.mps.is_available():
@@ -26,7 +26,7 @@ generator = pipeline(
     "text-generation",
     model=model,
     tokenizer=tokenizer,
-    max_new_tokens=100,
+    max_new_tokens=3000,
     device=0 if torch.cuda.is_available() or torch.mps.is_available() else -1,
     pad_token_id=tokenizer.eos_token_id
 )
@@ -41,8 +41,11 @@ CHROMA_PATH = "chroma"
 if tokenizer.pad_token is None:
     tokenizer.pad_token = tokenizer.eos_token
 
+# Add message storage
+conversation_history = []
+
 # Function to retrieve similar documents
-def retrieve_similar_documents(query, top_k=3):
+def retrieve_similar_documents(query, top_k=5):
     db = Chroma(
         persist_directory=CHROMA_PATH,
         embedding_function=embedding_function()
@@ -70,7 +73,7 @@ def generate_response(input_text, context=""):
     generated_text = tokenizer.decode(outputs[0], skip_special_tokens=True)
     answer = generated_text[len(prompt):].strip()
     last_period_index = answer.rfind(".")
-    if last_period_index != -1:
+    if (last_period_index != -1):
         answer = answer[:last_period_index + 1]
     answer = answer.replace("\n", "").replace("\r", "").replace("\t", "")
 
@@ -80,19 +83,31 @@ def generate_response(input_text, context=""):
 def send_query():
     query = input_box.get("1.0", tk.END).strip()
     if query:
+        # Display user message
         output_box.insert(tk.END, f"You: {query}\n", "user")
         output_box.see(tk.END)
+        
+        # Store user message
+        conversation_history.append({"role": "user", "content": query})
+        
+        # Get response
         similar_docs = retrieve_similar_documents(query)
         context = "\n".join(similar_docs)
         response = generate_response(query, context=context)
+        
+        # Display bot message
         output_box.insert(tk.END, f"AI: {response}\n\n", "bot")
         output_box.see(tk.END)
+        
+        # Store bot message
+        conversation_history.append({"role": "bot", "content": response})
+        
         input_box.delete("1.0", tk.END)
 
 # Function to browse and process a folder
 def browse_folder():
     folder_selected = filedialog.askdirectory()
-    if folder_selected:
+    if (folder_selected):
         output_box.insert(tk.END, f"Processing files in folder: {folder_selected}\n", "bot")
         output_box.see(tk.END)
         try:
@@ -101,6 +116,30 @@ def browse_folder():
             output_box.insert(tk.END, "Documents added to the database successfully.\n", "bot")
         except Exception as e:
             output_box.insert(tk.END, f"Error: {str(e)}\n", "bot")
+        output_box.see(tk.END)
+
+def export_conversation():
+    if not conversation_history:
+        output_box.insert(tk.END, "No conversation to export.\n", "bot")
+        return
+        
+    file_path = filedialog.asksaveasfilename(
+        defaultextension=".txt",
+        filetypes=[("Text files", "*.txt"), ("All files", "*.*")],
+        title="Export Conversation"
+    )
+    
+    if file_path:
+        try:
+            with open(file_path, 'w', encoding='utf-8') as file:
+                for message in conversation_history:
+                    role = "You" if message["role"] == "user" else "AI"
+                    file.write(f"{role}: {message['content']}\n\n")
+            
+            output_box.insert(tk.END, f"Conversation exported to {file_path}\n", "bot")
+        except Exception as e:
+            output_box.insert(tk.END, f"Error exporting conversation: {str(e)}\n", "bot")
+        
         output_box.see(tk.END)
 
 # Create the main window
@@ -124,6 +163,10 @@ send_button.pack(pady=5)
 # Browse folder button
 browse_button = tk.Button(root, text="Load Documents", command=browse_folder)
 browse_button.pack(pady=5)
+
+# Export button
+export_button = tk.Button(root, text="Export Chat", command=export_conversation)
+export_button.pack(pady=5)
 
 # Start the GUI loop
 root.mainloop()
