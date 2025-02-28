@@ -1,3 +1,4 @@
+from time import sleep
 import tkinter as tk
 from tkinter import scrolledtext, filedialog
 import torch
@@ -15,12 +16,12 @@ elif torch.mps.is_available():
     device = torch.device('mps')
 else:
     device = torch.device('cpu')
-#device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+# device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 tokenizer = AutoTokenizer.from_pretrained(model_path)
 model = AutoModelForCausalLM.from_pretrained(
     model_path,
-    torch_dtype=torch.float16,  # Use float16 for faster inference
+    torch_dtype=torch.float16,  # 使用半精度浮点数
 ).to(device)
 generator = pipeline(
     "text-generation",
@@ -86,30 +87,31 @@ def send_query():
         # Display user message
         output_box.insert(tk.END, f"You: {query}\n", "user")
         output_box.see(tk.END)
-        
+
         # Store user message
         conversation_history.append({"role": "user", "content": query})
-        
+
         # Get response
         similar_docs = retrieve_similar_documents(query)
         context = "\n".join(similar_docs)
         response = generate_response(query, context=context)
-        
+
         # Display bot message
         output_box.insert(tk.END, f"AI: {response}\n\n", "bot")
         output_box.see(tk.END)
-        
+
         # Store bot message
         conversation_history.append({"role": "bot", "content": response})
-        
+
         input_box.delete("1.0", tk.END)
 
 # Function to browse and process a folder
 def browse_folder():
     folder_selected = filedialog.askdirectory()
-    if (folder_selected):
+    if folder_selected:
         output_box.insert(tk.END, f"Processing files in folder: {folder_selected}\n", "bot")
         output_box.see(tk.END)
+        root.update_idletasks()
         try:
             # Add documents to the Chroma vector store using populate_database.py
             add_documents_to_chroma(folder_selected)
@@ -117,56 +119,79 @@ def browse_folder():
         except Exception as e:
             output_box.insert(tk.END, f"Error: {str(e)}\n", "bot")
         output_box.see(tk.END)
+    else:
+        output_box.insert(tk.END, "No folder was selected.\n", "bot")
+        output_box.see(tk.END)
 
 def export_conversation():
     if not conversation_history:
         output_box.insert(tk.END, "No conversation to export.\n", "bot")
         return
-        
+
     file_path = filedialog.asksaveasfilename(
         defaultextension=".txt",
         filetypes=[("Text files", "*.txt"), ("All files", "*.*")],
         title="Export Conversation"
     )
-    
+
     if file_path:
         try:
             with open(file_path, 'w', encoding='utf-8') as file:
                 for message in conversation_history:
                     role = "You" if message["role"] == "user" else "AI"
                     file.write(f"{role}: {message['content']}\n\n")
-            
+
             output_box.insert(tk.END, f"Conversation exported to {file_path}\n", "bot")
         except Exception as e:
             output_box.insert(tk.END, f"Error exporting conversation: {str(e)}\n", "bot")
-        
+
         output_box.see(tk.END)
+
 
 # Create the main window
 root = tk.Tk()
 root.title("AI RAG Assistant")
 
+# Get screen width and height
+screen_width = root.winfo_screenwidth()
+screen_height = root.winfo_screenheight()
+
+# Set initial window size (responsive)
+root.geometry(f"{int(screen_width * 0.5)}x{int(screen_height * 0.5)}")  # 50% of screen size
+root.minsize(600, 400)  # Minimum size to prevent extreme shrinkage
+
+# Configure rows and columns for responsiveness
+root.columnconfigure(0, weight=1)
+root.rowconfigure(0, weight=1)
+
 # Output box (Scrollable)
-output_box = scrolledtext.ScrolledText(root, wrap=tk.WORD, height=20, width=60, state=tk.NORMAL)
+output_box = scrolledtext.ScrolledText(root, wrap=tk.WORD, height=20, width=60)
 output_box.tag_config("user", foreground="blue")
 output_box.tag_config("bot", foreground="green")
-output_box.pack(pady=10)
+output_box.grid(row=0, column=0, columnspan=2, padx=10, pady=10, sticky="nsew")
 
 # Input box
-input_box = tk.Text(root, height=3, width=50)
-input_box.pack(pady=5)
+input_box = tk.Text(root, height=3)
+input_box.grid(row=1, column=0, padx=10, pady=5, sticky="ew")
 
 # Send button
 send_button = tk.Button(root, text="Send", command=send_query)
-send_button.pack(pady=5)
+send_button.grid(row=1, column=1, padx=10, pady=5, sticky="ew")
 
 # Browse folder button
 browse_button = tk.Button(root, text="Load Documents", command=browse_folder)
-browse_button.pack(pady=5)
+browse_button.grid(row=2, column=0, padx=10, pady=5, sticky="ew")
 
 # Export button
 export_button = tk.Button(root, text="Export Chat", command=export_conversation)
-export_button.pack(pady=5)
+export_button.grid(row=2, column=1, padx=10, pady=5, sticky="ew")
+
+# Ensure all columns expand with resizing
+root.columnconfigure(0, weight=3)  # Input box takes more space
+root.columnconfigure(1, weight=1)  # Buttons take less space
+root.rowconfigure(0, weight=5)  # Output box grows the most
+root.rowconfigure(1, weight=1)
+root.rowconfigure(2, weight=1)
 
 # Start the GUI loop
 root.mainloop()
