@@ -9,7 +9,7 @@ from populate_database import add_documents_to_chroma
 from embedding import embedding_function
 
 # Initialize model and tokenizer
-model_path = 'llama3.2-1b'  # Replace with your model's path
+model_path = 'Llama-3.2-3B-Instruct'  # Replace with your model's path
 if torch.cuda.is_available():
     device = torch.device('cuda')
 elif torch.mps.is_available():
@@ -21,7 +21,7 @@ else:
 tokenizer = AutoTokenizer.from_pretrained(model_path)
 model = AutoModelForCausalLM.from_pretrained(
     model_path,
-    torch_dtype=torch.float16,  # 使用半精度浮点数
+    torch_dtype=torch.float16,  
 ).to(device)
 generator = pipeline(
     "text-generation",
@@ -44,6 +44,13 @@ if tokenizer.pad_token is None:
 
 # Add message storage
 conversation_history = []
+
+default_font_size = 10  # Starting font size
+current_font_size = default_font_size
+
+# Get embedding model name from the embedding function
+def get_embedding_model_name():
+    return "multilingual-e5-large"
 
 # Function to retrieve similar documents
 def retrieve_similar_documents(query, top_k=5):
@@ -79,6 +86,33 @@ def generate_response(input_text, context=""):
     answer = answer.replace("\n", "").replace("\r", "").replace("\t", "")
 
     return answer
+
+# Function to change font size
+def change_font_size(delta=0):
+    global current_font_size
+    old_size = current_font_size
+    
+    if delta == 0:  # Reset to default
+        current_font_size = default_font_size
+    else:
+        current_font_size = max(6, min(24, current_font_size + delta))
+    
+    # Apply font size to text areas
+    output_box.config(font=("TkDefaultFont", current_font_size))
+    input_box.config(font=("TkDefaultFont", current_font_size))
+    
+    # Apply smaller font size to model info labels (70% of main font size)
+    info_font_size = max(7, int(current_font_size * 0.7))
+    models_label.config(font=("TkDefaultFont", info_font_size, "bold"))
+    llm_label.config(font=("TkDefaultFont", info_font_size))
+    embedding_label.config(font=("TkDefaultFont", info_font_size))
+    
+    # Show warning if font size is too large
+    if current_font_size > 18 and current_font_size > old_size:
+        output_box.insert(tk.END, "Warning! Font size exceeds limit! Controls may be affected!\n", "bot")
+
+    output_box.insert(tk.END, f"Font size set to {current_font_size}\n", "bot")
+    output_box.see(tk.END)
 
 # Function to send query from the GUI
 def send_query():
@@ -162,36 +196,74 @@ root.minsize(600, 400)  # Minimum size to prevent extreme shrinkage
 
 # Configure rows and columns for responsiveness
 root.columnconfigure(0, weight=1)
-root.rowconfigure(0, weight=1)
+root.rowconfigure(1, weight=1)  
+
+# Add a controls frame at the top
+controls_frame = tk.Frame(root)
+controls_frame.grid(row=0, column=0, columnspan=2, padx=10, pady=5, sticky="ne")
+
+# Font size buttons in the controls frame
+font_label = tk.Label(controls_frame, text="Font Size:")
+font_label.pack(side=tk.LEFT, padx=5)
+
+decrease_font_btn = tk.Button(controls_frame, text="-", width=2, command=lambda: change_font_size(-1))
+decrease_font_btn.pack(side=tk.LEFT, padx=2)
+
+reset_font_btn = tk.Button(controls_frame, text="Reset", command=lambda: change_font_size(0))
+reset_font_btn.pack(side=tk.LEFT, padx=2)
+
+increase_font_btn = tk.Button(controls_frame, text="+", width=2, command=lambda: change_font_size(1))
+increase_font_btn.pack(side=tk.LEFT, padx=2)
+
+# After initializing the models and before creating the main window
+# Add these variables to store model information
+llm_model_name = model_path  # This already exists as 'llama3.2-1b'
+embedding_model_name = get_embedding_model_name()
+
+# After creating the controls_frame for font size buttons
+# Add a new frame for model information display
+model_info_frame = tk.Frame(root)
+model_info_frame.grid(row=0, column=0, columnspan=2, padx=10, pady=5, sticky="nw")
+
+# Add labels to display model information
+models_label = tk.Label(model_info_frame, text="Models:", font=("TkDefaultFont", 9, "bold"))
+models_label.pack(side=tk.LEFT, padx=5)
+
+llm_label = tk.Label(model_info_frame, text=f"LLM: {llm_model_name}", font=("TkDefaultFont", 9))
+llm_label.pack(side=tk.LEFT, padx=5)
+
+embedding_label = tk.Label(model_info_frame, text=f"Embedding: {embedding_model_name}", font=("TkDefaultFont", 9))
+embedding_label.pack(side=tk.LEFT, padx=5)
 
 # Output box (Scrollable)
-output_box = scrolledtext.ScrolledText(root, wrap=tk.WORD, height=20, width=60)
+output_box = scrolledtext.ScrolledText(root, wrap=tk.WORD, height=20, width=60, font=("TkDefaultFont", current_font_size))
 output_box.tag_config("user", foreground="blue")
 output_box.tag_config("bot", foreground="green")
-output_box.grid(row=0, column=0, columnspan=2, padx=10, pady=10, sticky="nsew")
+output_box.grid(row=1, column=0, columnspan=2, padx=10, pady=10, sticky="nsew")
 
 # Input box
-input_box = tk.Text(root, height=3)
-input_box.grid(row=1, column=0, padx=10, pady=5, sticky="ew")
+input_box = tk.Text(root, height=3, font=("TkDefaultFont", current_font_size))
+input_box.grid(row=2, column=0, padx=10, pady=5, sticky="ew")
 
-# Send button
-send_button = tk.Button(root, text="Send", command=send_query)
-send_button.grid(row=1, column=1, padx=10, pady=5, sticky="ew")
+button_bar = tk.Frame(root)
+button_bar.grid(row=3, column=0, columnspan=2, padx=10, pady=5, sticky="ew")
 
-# Browse folder button
-browse_button = tk.Button(root, text="Load Documents", command=browse_folder)
-browse_button.grid(row=2, column=0, padx=10, pady=5, sticky="ew")
+browse_button = tk.Button(button_bar, text="Load Documents", command=browse_folder)
+browse_button.pack(side=tk.LEFT, padx=5, expand=True)
 
-# Export button
-export_button = tk.Button(root, text="Export Chat", command=export_conversation)
-export_button.grid(row=2, column=1, padx=10, pady=5, sticky="ew")
+export_button = tk.Button(button_bar, text="Export Chat", command=export_conversation)
+export_button.pack(side=tk.LEFT, padx=5, expand=True)
 
-# Ensure all columns expand with resizing
-root.columnconfigure(0, weight=3)  # Input box takes more space
-root.columnconfigure(1, weight=1)  # Buttons take less space
-root.rowconfigure(0, weight=5)  # Output box grows the most
-root.rowconfigure(1, weight=1)
-root.rowconfigure(2, weight=1)
+send_button = tk.Button(button_bar, text="Send", command=send_query)
+send_button.pack(side=tk.LEFT, padx=5, expand=True)
+
+# Ensure all columns expand 
+root.columnconfigure(0, weight=3)  
+root.columnconfigure(1, weight=1)  
+root.rowconfigure(0, weight=1)  
+root.rowconfigure(1, weight=5)  
+root.rowconfigure(2, weight=1)  
+root.rowconfigure(3, weight=1)  
 
 # Start the GUI loop
 root.mainloop()
