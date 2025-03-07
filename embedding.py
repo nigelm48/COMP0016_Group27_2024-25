@@ -1,11 +1,11 @@
-from transformers import AutoModelForCausalLM, AutoTokenizer
+from transformers import AutoModelForCausalLM, AutoTokenizer, AutoModel
 import torch
 
 class LocalHuggingFaceEmbeddings:
     def __init__(self, model_path: str):
         self.tokenizer = AutoTokenizer.from_pretrained(model_path)
         self.tokenizer.pad_token = self.tokenizer.eos_token
-        self.model = AutoModelForCausalLM.from_pretrained(model_path)
+        self.model = AutoModel.from_pretrained(model_path)
         self.device = torch.device("cuda" if torch.cuda.is_available() else "mps" if torch.mps.is_available() else "cpu")
         self.model = self.model.to(self.device)
 
@@ -46,5 +46,5 @@ class LocalHuggingFaceEmbeddings:
 
 
 def embedding_function():
-    model_path = "Embedding_Model/e5"  # Replace with your model's path
+    model_path = "multilingual-e5-large"  # Replace with your model's path
     return LocalHuggingFaceEmbeddings(model_path)
