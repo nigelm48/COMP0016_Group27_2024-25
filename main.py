@@ -5,8 +5,9 @@ import torch
 from transformers import AutoTokenizer, AutoModelForCausalLM, pipeline
 from langchain_chroma import Chroma
 from langchain.prompts import PromptTemplate
-from populate_database import add_documents_to_chroma
+from populate_database import add_documents_to_chroma, clear_database
 from embedding import embedding_function
+import gc
 
 # Initialize model and tokenizer
 model_path = 'Llama-3.2-3B-Instruct'  # Replace with your model's path
@@ -181,6 +182,62 @@ def export_conversation():
 
         output_box.see(tk.END)
 
+# Function to handle the delete database action
+def delete_database():
+    confirmation = tk.messagebox.askyesno(
+        "Confirm Delete", 
+        "Are you sure you want to delete the entire database?\nThis action cannot be undone."
+    )
+    
+    if confirmation:
+        try:
+            clear_database()
+            output_box.insert(tk.END, "Database cleared successfully.\n", "bot")
+        except Exception as e:
+            output_box.insert(tk.END, f"Error clearing database: {str(e)}\n", "bot")
+        output_box.see(tk.END)
+
+# Add this function to handle proper cleanup when the window closes
+def on_closing():
+    try:
+        # Close Chroma connections if any are open
+        db = Chroma(
+            persist_directory=CHROMA_PATH,
+            embedding_function=embedding_function()
+        )
+        
+        # Force cleanup of any open client connections
+        if hasattr(db, '_client'):
+            if hasattr(db._client, 'close'):
+                db._client.close()
+        
+        # Clean up embedding model (may help with semaphore releases)
+        try:
+            emb_func = embedding_function()
+            if hasattr(emb_func, 'model'):
+                emb_func.model = None
+                del emb_func.model
+        except:
+            pass
+        
+        # Release memory from the main model
+        global model, tokenizer, generator
+        model = None
+        tokenizer = None
+        generator = None
+                
+        # Free GPU memory (CUDA or MPS)
+        if torch.cuda.is_available():
+            torch.cuda.empty_cache()
+        elif torch.mps.is_available():
+            gc.collect()
+        sleep(0.2)  # delay for gc collection
+            
+    except Exception as e:
+        print(f"Error during cleanup: {e}")
+        
+    # Destroy the window
+    root.destroy()
 
 # Create the main window
 root = tk.Tk()
@@ -191,7 +248,7 @@ screen_width = root.winfo_screenwidth()
 screen_height = root.winfo_screenheight()
 
 # Set initial window size (responsive)
-root.geometry(f"{int(screen_width * 0.5)}x{int(screen_height * 0.5)}")  # 50% of screen size
+root.geometry(f"{int(screen_width * 0.75)}x{int(screen_height * 0.75)}")  # 50% of screen size
 root.minsize(600, 400)  # Minimum size to prevent extreme shrinkage
 
 # Configure rows and columns for responsiveness
@@ -245,11 +302,16 @@ output_box.grid(row=1, column=0, columnspan=2, padx=10, pady=10, sticky="nsew")
 input_box = tk.Text(root, height=3, font=("TkDefaultFont", current_font_size))
 input_box.grid(row=2, column=0, padx=10, pady=5, sticky="ew")
 
+# Button bar
 button_bar = tk.Frame(root)
 button_bar.grid(row=3, column=0, columnspan=2, padx=10, pady=5, sticky="ew")
 
+# Buttons in the button bar
 browse_button = tk.Button(button_bar, text="Load Documents", command=browse_folder)
 browse_button.pack(side=tk.LEFT, padx=5, expand=True)
+
+delete_db_button = tk.Button(button_bar, text="Delete Database", command=delete_database, fg="red")
+delete_db_button.pack(side=tk.LEFT, padx=5, expand=True)
 
 export_button = tk.Button(button_bar, text="Export Chat", command=export_conversation)
 export_button.pack(side=tk.LEFT, padx=5, expand=True)
@@ -264,6 +326,8 @@ root.rowconfigure(0, weight=1)
 root.rowconfigure(1, weight=5)  
 root.rowconfigure(2, weight=1)  
 root.rowconfigure(3, weight=1)  
+
+root.protocol("WM_DELETE_WINDOW", on_closing)
 
 # Start the GUI loop
 root.mainloop()
