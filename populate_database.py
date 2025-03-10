@@ -7,6 +7,7 @@ from langchain.schema.document import Document
 from embedding import embedding_function
 from langchain_community.vectorstores import Chroma
 from langchain_community.document_loaders import UnstructuredMarkdownLoader
+from langchain_community.document_loaders import UnstructuredWordDocumentLoader
 
 CHROMA_PATH = "chroma"
 DATA_PATH = "data"
@@ -19,10 +20,46 @@ def add_documents_to_chroma(folder_path):
         print("✨ Clearing Database")
         clear_database()
 
-    # Create (or update) the data store.
-    documents = load_pdf(folder_path)
+    # Create (or update) the data store by loading files from the given folder
+    documents = load_documents_from_directory(folder_path)
+    if not documents:
+        print("No supported documents found in the directory.")
+        return
+        
+    print(f"Loaded {len(documents)} documents")
     chunks = split_documents(documents)
     add_to_chroma(chunks)
+
+def load_documents_from_directory(directory_path):
+    """Load documents from various file types in the given directory."""
+    all_documents = []
+    
+    # Get all files in the directory
+    for root, _, files in os.walk(directory_path):
+        for file in files:
+            file_path = os.path.join(root, file)
+            file_extension = os.path.splitext(file)[1].lower()
+            
+            try:
+                if file_extension == '.pdf':
+                    # For PDFs, we need the directory, not individual files
+                    pass
+                elif file_extension in ['.md', '.markdown']:
+                    print(f"Loading Markdown: {file_path}")
+                    all_documents.extend(load_md(file_path))
+                elif file_extension in ['.doc', '.docx']:
+                    print(f"Loading Word Document: {file_path}")
+                    all_documents.extend(load_doc(file_path))
+            except Exception as e:
+                print(f"Error loading {file_path}: {e}")
+    
+    # Handle PDFs separately since PyPDFDirectoryLoader processes the entire directory
+    pdf_documents = load_pdf(directory_path)
+    if pdf_documents:
+        print(f"Loaded PDFs from directory")
+        all_documents.extend(pdf_documents)
+        
+    return all_documents
 
 def load_pdf(path):
     document_loader = PyPDFDirectoryLoader(path)
@@ -32,6 +69,9 @@ def load_md(path):
     document_loader = UnstructuredMarkdownLoader(path)
     return document_loader.load()
 
+def load_doc(path):
+    document_loader = UnstructuredWordDocumentLoader(path)
+    return document_loader.load()
 
 def split_documents(documents: list[Document]):
     text_splitter = RecursiveCharacterTextSplitter(
@@ -103,6 +143,4 @@ def calculate_chunk_ids(chunks):
 def clear_database():
     if os.path.exists(CHROMA_PATH):
         shutil.rmtree(CHROMA_PATH)
-
-
 
