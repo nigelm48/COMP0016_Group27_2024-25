@@ -301,7 +301,7 @@ root.title("AI RAG Assistant")
 # Configure responsive window sizing
 screen_width = root.winfo_screenwidth()
 screen_height = root.winfo_screenheight()
-root.geometry(f"{int(screen_width * 0.75)}x{int(screen_height * 0.75)}")
+root.geometry(f"{int(screen_width * 0.99)}x{int(screen_height * 0.99)}")
 root.minsize(600, 400)
 
 # Configure layout responsiveness
