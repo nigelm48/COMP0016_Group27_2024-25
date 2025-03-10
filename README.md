@@ -8,6 +8,8 @@
 - Langchain
 - chromaDB
 
+This could be done by pip install
+
 ## How to Run
 - Download as zip
 - Run main.py file
