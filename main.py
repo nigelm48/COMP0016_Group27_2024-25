@@ -23,7 +23,7 @@ else:
 tokenizer = AutoTokenizer.from_pretrained(model_path)
 model = AutoModelForCausalLM.from_pretrained(
     model_path,
-    torch_dtype=torch.float16,  
+    torch_dtype=torch.float16,
 ).to(device)
 generator = pipeline(
     "text-generation",
@@ -51,9 +51,11 @@ conversation_history = []
 default_font_size = 10
 current_font_size = default_font_size
 
+
 # Retrieve embedding model information
 def get_embedding_model_name():
     return "multilingual-e5-large"
+
 
 # Semantic search function with content filtering
 def retrieve_similar_documents(query, top_k=5):
@@ -63,10 +65,10 @@ def retrieve_similar_documents(query, top_k=5):
         persist_directory=CHROMA_PATH,
         embedding_function=embedding_function()
     )
-    
+
     # Execute semantic similarity search
     results = db.similarity_search(query, k=top_k * retrieval_multiplier)
-    
+
     # Apply content filtering if exclusion terms exist
     if do_not_include_items:
         filtered_results = []
@@ -77,24 +79,28 @@ def retrieve_similar_documents(query, top_k=5):
                 if excluded_item.lower() in result.page_content.lower():
                     should_include = False
                     break
-            
+
             if should_include:
                 filtered_results.append(result)
                 # Early termination if sufficient results collected
                 if len(filtered_results) >= top_k:
                     break
-        
+
         # Warn if insufficient results after filtering
         if len(filtered_results) < top_k:
-            print(f"Warning: Only {len(filtered_results)} documents remain after filtering, less than requested {top_k}")
-            output_box.insert(tk.END, f"Warning: Only {len(filtered_results)} documents remain after filtering, less than requested {top_k}\n", "bot")
+            print(
+                f"Warning: Only {len(filtered_results)} documents remain after filtering, less than requested {top_k}")
+            output_box.insert(tk.END,
+                              f"Warning: Only {len(filtered_results)} documents remain after filtering, less than requested {top_k}\n",
+                              "bot")
             output_box.see(tk.END)
-        
+
         # Return filtered document content
         return [result.page_content for result in filtered_results[:top_k]]
     else:
         # Return unfiltered document content if no exclusions
         return [result.page_content for result in results[:top_k]]
+
 
 # Process query and generate AI response
 def generate_response(input_text, context=""):
@@ -122,32 +128,34 @@ def generate_response(input_text, context=""):
 
     return answer
 
+
 # Adjust UI text size dynamically
 def change_font_size(delta=0):
     global current_font_size
     old_size = current_font_size
-    
+
     if delta == 0:  # Reset to default value
         current_font_size = default_font_size
     else:
         current_font_size = max(6, min(24, current_font_size + delta))
-    
+
     # Update main text components
     output_box.config(font=("TkDefaultFont", current_font_size))
     input_box.config(font=("TkDefaultFont", current_font_size))
-    
+
     # Scale model info labels proportionally
     info_font_size = max(7, int(current_font_size * 0.7))
     models_label.config(font=("TkDefaultFont", info_font_size, "bold"))
     llm_label.config(font=("TkDefaultFont", info_font_size))
     embedding_label.config(font=("TkDefaultFont", info_font_size))
-    
+
     # Display warning for excessive font sizes
     if current_font_size > 18 and current_font_size > old_size:
         output_box.insert(tk.END, "Warning! Font size exceeds limit! Controls may be affected!\n", "bot")
 
     output_box.insert(tk.END, f"Font size set to {current_font_size}\n", "bot")
     output_box.see(tk.END)
+
 
 # Process user input and generate AI response
 def send_query():
@@ -171,6 +179,34 @@ def send_query():
         # Clear input field
         input_box.delete("1.0", tk.END)
 
+# Select and process a single file (Markdown, Word, or PDF)
+def browse_file():
+    file_selected = filedialog.askopenfilename(
+        filetypes=[
+            ("Markdown files", "*.md"),
+            ("Word documents", "*.docx"),
+            ("PDF files", "*.pdf"),
+            ("All supported files", "*.md *.docx *.pdf")
+        ],
+        title="Select a File"
+    )
+
+    if file_selected:
+        output_box.insert(tk.END, f"Processing file: {file_selected}\n", "bot")
+        output_box.see(tk.END)
+        root.update_idletasks()
+        try:
+            # Index the document into the vector database
+            add_documents_to_chroma(file_selected)
+            output_box.insert(tk.END, "File added to the database successfully.\n", "bot")
+        except Exception as e:
+            output_box.insert(tk.END, f"Error: {str(e)}\n", "bot")
+        output_box.see(tk.END)
+    else:
+        output_box.insert(tk.END, "No file was selected.\n", "bot")
+        output_box.see(tk.END)
+
+
 # Select and process document folder
 def browse_folder():
     folder_selected = filedialog.askdirectory()
@@ -189,6 +225,7 @@ def browse_folder():
         output_box.insert(tk.END, "No folder was selected.\n", "bot")
         output_box.see(tk.END)
 
+
 # Save conversation history to file
 def export_conversation():
     if not conversation_history:
@@ -197,7 +234,7 @@ def export_conversation():
 
     file_path = filedialog.asksaveasfilename(
         defaultextension=".txt",
-        filetypes=[("Text files", "*.txt"), ("All files", "*.*")],
+        filetypes=[("Text files", ".txt"), ("All files", ".*")],
         title="Export Conversation"
     )
 
@@ -214,13 +251,14 @@ def export_conversation():
 
         output_box.see(tk.END)
 
+
 # Remove all indexed documents from database
 def delete_database():
     confirmation = tk.messagebox.askyesno(
-        "Confirm Delete", 
+        "Confirm Delete",
         "Are you sure you want to delete the entire database?\nThis action cannot be undone."
     )
-    
+
     if confirmation:
         try:
             # Close active database connections
@@ -229,28 +267,29 @@ def delete_database():
                     persist_directory=CHROMA_PATH,
                     embedding_function=embedding_function()
                 )
-                
+
                 # Properly terminate client connection
                 if hasattr(db, '_client'):
                     if hasattr(db._client, 'close'):
                         db._client.close()
-                
+
                 # Release object references
                 db = None
-                
+
                 # Force memory cleanup
                 gc.collect()
             except Exception as e:
                 print(f"Error closing database connection: {e}")
-            
+
             # Execute database deletion
             clear_database()
-            
+
             output_box.insert(tk.END, "Database cleared successfully.\n", "bot")
             output_box.insert(tk.END, "Please restart the application for changes to take effect fully.\n", "bot")
         except Exception as e:
             output_box.insert(tk.END, f"Error clearing database: {str(e)}\n", "bot")
         output_box.see(tk.END)
+
 
 # Clean up resources when application closes
 def on_closing():
@@ -260,12 +299,12 @@ def on_closing():
             persist_directory=CHROMA_PATH,
             embedding_function=embedding_function()
         )
-        
+
         # Terminate client connections
         if hasattr(db, '_client'):
             if hasattr(db._client, 'close'):
                 db._client.close()
-        
+
         # Release embedding model resources
         try:
             emb_func = embedding_function()
@@ -274,25 +313,26 @@ def on_closing():
                 del emb_func.model
         except:
             pass
-        
+
         # Release LLM resources
         global model, tokenizer, generator
         model = None
         tokenizer = None
         generator = None
-                
+
         # Release GPU memory
         if torch.cuda.is_available():
             torch.cuda.empty_cache()
         elif torch.mps.is_available():
             gc.collect()
         sleep(0.2)  # Allow time for memory release
-            
+
     except Exception as e:
         print(f"Error during cleanup: {e}")
-        
+
     # Close application
     root.destroy()
+
 
 # Initialize main application window
 root = tk.Tk()
@@ -306,7 +346,7 @@ root.minsize(600, 400)
 
 # Configure layout responsiveness
 root.columnconfigure(0, weight=1)
-root.rowconfigure(1, weight=1)  
+root.rowconfigure(1, weight=1)
 
 # Font size control panel
 controls_frame = tk.Frame(root)
@@ -341,7 +381,8 @@ embedding_label = tk.Label(model_info_frame, text=f"Embedding: {embedding_model_
 embedding_label.pack(side=tk.LEFT, padx=5)
 
 # Chat display area
-output_box = scrolledtext.ScrolledText(root, wrap=tk.WORD, height=20, width=60, font=("TkDefaultFont", current_font_size))
+output_box = scrolledtext.ScrolledText(root, wrap=tk.WORD, height=20, width=60,
+                                       font=("TkDefaultFont", current_font_size))
 output_box.tag_config("user", foreground="blue")
 output_box.tag_config("bot", foreground="green")
 output_box.grid(row=1, column=0, columnspan=2, padx=10, pady=10, sticky="nsew")
@@ -355,8 +396,13 @@ button_bar = tk.Frame(root)
 button_bar.grid(row=3, column=0, columnspan=2, padx=10, pady=5, sticky="ew")
 
 # Action buttons
-browse_button = tk.Button(button_bar, text="Load Documents", command=browse_folder)
+browse_button = tk.Button(button_bar, text="Load Folder", command=browse_folder)
 browse_button.pack(side=tk.LEFT, padx=5, expand=True)
+
+# Add "Load File" button
+load_file_button = tk.Button(button_bar, text="Load File", command=browse_file)
+load_file_button.pack(side=tk.LEFT, padx=5, expand=True)
+
 
 delete_db_button = tk.Button(button_bar, text="Delete Database", command=delete_database, fg="red")
 delete_db_button.pack(side=tk.LEFT, padx=5, expand=True)
@@ -368,20 +414,22 @@ send_button = tk.Button(button_bar, text="Send", command=send_query)
 send_button.pack(side=tk.LEFT, padx=5, expand=True)
 
 # Layout weight configuration
-root.columnconfigure(0, weight=3)  
-root.columnconfigure(1, weight=1)  
-root.rowconfigure(0, weight=1)  
-root.rowconfigure(1, weight=5)  
-root.rowconfigure(2, weight=1)  
-root.rowconfigure(3, weight=1)  
+root.columnconfigure(0, weight=3)
+root.columnconfigure(1, weight=1)
+root.rowconfigure(0, weight=1)
+root.rowconfigure(1, weight=5)
+root.rowconfigure(2, weight=1)
+root.rowconfigure(3, weight=1)
 
 # Content exclusion list management
 do_not_include_items = []
+
 
 def update_do_not_include_listbox(items):
     do_not_include_listbox.delete(0, tk.END)
     for item in items:
         do_not_include_listbox.insert(tk.END, item)
+
 
 def add_do_not_include_item():
     item = do_not_include_entry.get().strip()
@@ -389,6 +437,7 @@ def add_do_not_include_item():
         do_not_include_items.append(item)
         update_do_not_include_listbox(do_not_include_items)
         do_not_include_entry.delete(0, tk.END)
+
 
 def filter_do_not_include_items():
     filter_text = filter_entry.get().strip()
@@ -398,9 +447,11 @@ def filter_do_not_include_items():
     else:
         update_do_not_include_listbox(do_not_include_items)
 
+
 def sort_do_not_include_items():
     do_not_include_items.sort()
     update_do_not_include_listbox(do_not_include_items)
+
 
 def remove_do_not_include_item():
     selected_indices = do_not_include_listbox.curselection()
@@ -408,16 +459,17 @@ def remove_do_not_include_item():
         output_box.insert(tk.END, "Please select an item to remove.\n", "bot")
         output_box.see(tk.END)
         return
-        
+
     # Process selected items in reverse order to maintain correct indexing
     for index in sorted(selected_indices, reverse=True):
         if 0 <= index < len(do_not_include_items):
             removed_item = do_not_include_items.pop(index)
             output_box.insert(tk.END, f"Removed item: {removed_item}\n", "bot")
-    
+
     # Refresh display
     update_do_not_include_listbox(do_not_include_items)
     output_box.see(tk.END)
+
 
 # Content exclusion interface
 do_not_include_frame = tk.Frame(root)
@@ -447,7 +499,7 @@ filter_controls_frame.grid(row=2, column=0, columnspan=3, pady=5, sticky="nsew")
 filter_controls_frame.columnconfigure(1, weight=1)  # Make filter entry expand
 
 filter_label = tk.Label(filter_controls_frame, text="Filter:")
-filter_label.grid(row=0, column=0, sticky="w", padx=(0,5))
+filter_label.grid(row=0, column=0, sticky="w", padx=(0, 5))
 
 filter_entry = tk.Entry(filter_controls_frame)
 filter_entry.grid(row=0, column=1, sticky="ew", padx=5)
