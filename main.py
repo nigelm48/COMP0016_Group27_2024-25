@@ -113,7 +113,7 @@ def generate_response(input_text, context=""):
     with torch.no_grad():
         outputs = model.generate(
             **inputs,
-            max_new_tokens=100,
+            max_new_tokens=200,
             temperature=0.7,
             top_p=0.9,
             num_beams=3,
