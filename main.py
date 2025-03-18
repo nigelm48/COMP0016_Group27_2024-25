@@ -10,15 +10,17 @@ from embedding import embedding_function
 import gc
 
 # LLM configuration and initialization
-model_path = 'Llama-3.2-3B-Instruct'  # Model identifier
+#model_path = 'llama3.2-1b'  # Model identifier
+#model_path = 'Llama-3.2-3B'  # Model identifier
+model_path = 'Qwen2.5-1.5B'  # Model identifier
+#model_path = 'Qwen2.5-3B'  # Model identifier
 if torch.cuda.is_available():
     device = torch.device('cuda')
 elif torch.mps.is_available():
     device = torch.device('mps')
 else:
     device = torch.device('cpu')
-# Alternative device detection method:
-# device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+
 
 tokenizer = AutoTokenizer.from_pretrained(model_path)
 model = AutoModelForCausalLM.from_pretrained(
@@ -54,7 +56,7 @@ current_font_size = default_font_size
 
 # Retrieve embedding model information
 def get_embedding_model_name():
-    return "multilingual-e5-large"
+    return "multilingual-e5-small"
 
 
 # Semantic search function with content filtering
@@ -113,7 +115,7 @@ def generate_response(input_text, context=""):
     with torch.no_grad():
         outputs = model.generate(
             **inputs,
-            max_new_tokens=100,
+            max_new_tokens=200,
             temperature=0.7,
             top_p=0.9,
             num_beams=3,

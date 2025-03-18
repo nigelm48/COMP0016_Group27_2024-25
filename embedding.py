@@ -46,5 +46,5 @@ class LocalHuggingFaceEmbeddings:
 
 
 def embedding_function():
-    model_path = "multilingual-e5-large"  # Replace with your model's path
+    model_path = "multilingual-e5-small"  # Replace with your model's path
     return LocalHuggingFaceEmbeddings(model_path)
