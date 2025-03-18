@@ -54,7 +54,7 @@ generator = pipeline(
 llm = generator
 
 # Persistent storage directory for vector database
-CHROMA_PATH = "chroma"
+CHROMA_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "chroma")
 
 # Configure tokenizer to handle padding correctly
 if tokenizer.pad_token is None:
@@ -129,7 +129,7 @@ def generate_response(input_text, context=""):
     with torch.no_grad():
         outputs = model.generate(
             **inputs,
-            max_new_tokens=200,
+            max_new_tokens=350,
             temperature=0.7,
             top_p=0.9,
             num_beams=3,
@@ -276,34 +276,71 @@ def delete_database():
     )
 
     if confirmation:
+        output_box.insert(tk.END, "Attempting to clear database contents...\n", "bot")
+        output_box.see(tk.END)
+        root.update_idletasks()  # Force UI update
+        
+        abs_chroma_path = os.path.abspath(CHROMA_PATH)
+        output_box.insert(tk.END, f"Database path: {abs_chroma_path}\n", "bot")
+        
         try:
-            # Close active database connections
-            try:
-                db = Chroma(
-                    persist_directory=CHROMA_PATH,
-                    embedding_function=embedding_function()
-                )
+            output_box.insert(tk.END, "Closing database connections...\n", "bot")
+            root.update_idletasks()
+            
+            db = Chroma(
+                persist_directory=abs_chroma_path,
+                embedding_function=embedding_function()
+            )
+            
+            if hasattr(db, '_client'):
+                if hasattr(db._client, 'close'):
+                    db._client.close()
+                    output_box.insert(tk.END, "Database client connection closed.\n", "bot")
+            
 
-                # Properly terminate client connection
-                if hasattr(db, '_client'):
-                    if hasattr(db._client, 'close'):
-                        db._client.close()
-
-                # Release object references
-                db = None
-
-                # Force memory cleanup
-                gc.collect()
-            except Exception as e:
-                print(f"Error closing database connection: {e}")
-
-            # Execute database deletion
-            clear_database()
-
-            output_box.insert(tk.END, "Database cleared successfully.\n", "bot")
-            output_box.insert(tk.END, "Please restart the application for changes to take effect fully.\n", "bot")
+            db = None
+            gc.collect()
+            time.sleep(0.5)  
+            
         except Exception as e:
-            output_box.insert(tk.END, f"Error clearing database: {str(e)}\n", "bot")
+            output_box.insert(tk.END, f"Warning during connection cleanup: {str(e)}\n", "bot")
+        
+        # Now delete contents 
+        success = False
+        try:
+            if os.path.exists(abs_chroma_path):
+                for item in os.listdir(abs_chroma_path):
+                    item_path = os.path.join(abs_chroma_path, item)
+                    try:
+                        if os.path.isfile(item_path):
+                            os.unlink(item_path)
+                            output_box.insert(tk.END, f"Deleted file: {item}\n", "bot")
+                        elif os.path.isdir(item_path):
+                            import shutil
+                            shutil.rmtree(item_path)
+                            output_box.insert(tk.END, f"Deleted directory: {item}\n", "bot")
+                    except Exception as e:
+                        output_box.insert(tk.END, f"Failed to delete {item}: {str(e)}\n", "bot")
+                
+                try:
+                    with open(os.path.join(abs_chroma_path, ".empty"), "w") as f:
+                        f.write("# This file ensures the chroma directory exists and is writable")
+                    success = True
+                except Exception as e:
+                    output_box.insert(tk.END, f"Warning: Could not write test file: {str(e)}\n", "bot")
+            else:
+                os.makedirs(abs_chroma_path, exist_ok=True)
+                success = True
+                output_box.insert(tk.END, "Created empty database directory.\n", "bot")
+        except Exception as e:
+            output_box.insert(tk.END, f"Error clearing database contents: {str(e)}\n", "bot")
+        
+        if success:
+            output_box.insert(tk.END, "Database contents cleared successfully.\n", "bot")
+        else:
+            output_box.insert(tk.END, "WARNING: Database may not be fully cleared.\n", "bot")
+            
+        output_box.insert(tk.END, "Please restart the application for changes to take effect fully.\n", "bot")
         output_box.see(tk.END)
 
 
