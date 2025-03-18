@@ -10,7 +10,7 @@ from embedding import embedding_function
 import gc
 
 # LLM configuration and initialization
-model_path = 'Llama-3.2-3B-Instruct'  # Model identifier
+model_path = 'Qwen2.5-3B'  # Model identifier
 if torch.cuda.is_available():
     device = torch.device('cuda')
 elif torch.mps.is_available():
