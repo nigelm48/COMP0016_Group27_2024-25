@@ -16,7 +16,7 @@ This could be done by pip install
 - under project path:
 - git lfs install
 - git clone https://huggingface.co/Qwen/Qwen2.5-3B
-- git clone https://huggingface.co/intfloat/multilingual-e5-large
+- git clone https://huggingface.co/intfloat/multilingual-e5-small
 
 ## Alternative
 - Run exe file directly (coming soon - currently facing some issues with compiling to a .exe)
