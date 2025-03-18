@@ -12,34 +12,64 @@ from langchain_community.document_loaders import UnstructuredWordDocumentLoader
 CHROMA_PATH = "chroma"
 DATA_PATH = "data"
 
-def add_documents_to_chroma(folder_path):
+def add_documents_to_chroma(file_or_folder_path):
     parser = argparse.ArgumentParser()
     parser.add_argument("--reset", action="store_true", help="Reset the database.")
-    args = parser.parse_args()
+    args, _ = parser.parse_known_args()  # Avoid GUI argparse errors
+
     if args.reset:
         print("✨ Clearing Database")
         clear_database()
 
-    # Create (or update) the data store by loading files from the given folder
-    documents = load_documents_from_directory(folder_path)
-    if not documents:
-        print("No supported documents found in the directory.")
+    # Determine if it's a file or a folder
+    if os.path.isfile(file_or_folder_path):
+        print(f"📂 Processing single file: {file_or_folder_path}")
+        documents = load_single_file(file_or_folder_path)
+    elif os.path.isdir(file_or_folder_path):
+        print(f"📁 Processing folder: {file_or_folder_path}")
+        documents = load_documents_from_directory(file_or_folder_path)
+    else:
+        print(f"⚠️ Invalid path: {file_or_folder_path}")
         return
-        
-    print(f"Loaded {len(documents)} documents")
+
+    if not documents:
+        print(f"⚠️ No content extracted from {file_or_folder_path}")
+        return
+
+    print(f"✅ Loaded {len(documents)} document(s)")
     chunks = split_documents(documents)
     add_to_chroma(chunks)
+
+def load_single_file(file_path):
+    """Load a single Markdown, Word, or PDF file."""
+    ext = os.path.splitext(file_path)[1].lower()
+
+    try:
+        if ext == ".pdf":
+            return load_pdf(file_path)
+        elif ext in [".md", ".markdown"]:
+            return load_md(file_path)
+        elif ext in [".doc", ".docx"]:
+            return load_doc(file_path)
+        else:
+            print(f"❌ Unsupported file type: {ext}")
+            return []
+    except Exception as e:
+        print(f"⚠️ Error loading {file_path}: {e}")
+        return []
+
+
 
 def load_documents_from_directory(directory_path):
     """Load documents from various file types in the given directory."""
     all_documents = []
-    
+
     # Get all files in the directory
     for root, _, files in os.walk(directory_path):
         for file in files:
             file_path = os.path.join(root, file)
             file_extension = os.path.splitext(file)[1].lower()
-            
+
             try:
                 if file_extension == '.pdf':
                     # For PDFs, we need the directory, not individual files
@@ -52,26 +82,30 @@ def load_documents_from_directory(directory_path):
                     all_documents.extend(load_doc(file_path))
             except Exception as e:
                 print(f"Error loading {file_path}: {e}")
-    
+
     # Handle PDFs separately since PyPDFDirectoryLoader processes the entire directory
     pdf_documents = load_pdf(directory_path)
     if pdf_documents:
         print(f"Loaded PDFs from directory")
         all_documents.extend(pdf_documents)
-        
+
     return all_documents
+
 
 def load_pdf(path):
     document_loader = PyPDFDirectoryLoader(path)
     return document_loader.load()
 
+
 def load_md(path):
     document_loader = UnstructuredMarkdownLoader(path)
     return document_loader.load()
 
+
 def load_doc(path):
     document_loader = UnstructuredWordDocumentLoader(path)
     return document_loader.load()
+
 
 def split_documents(documents: list[Document]):
     text_splitter = RecursiveCharacterTextSplitter(
@@ -112,7 +146,6 @@ def add_to_chroma(chunks: list[Document]):
 
 
 def calculate_chunk_ids(chunks):
-
     # This will create IDs like "data/monopoly.pdf:6:2"
     # Page Source : Page Number : Chunk Index
 
@@ -143,4 +176,3 @@ def calculate_chunk_ids(chunks):
 def clear_database():
     if os.path.exists(CHROMA_PATH):
         shutil.rmtree(CHROMA_PATH)
-
