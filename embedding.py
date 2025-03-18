@@ -1,8 +1,16 @@
-from transformers import AutoModelForCausalLM, AutoTokenizer, AutoModel
+# Import the entire transformers module
+import transformers
 import torch
+import os
+
+# Create aliases for needed classes
+AutoModelForCausalLM = transformers.AutoModelForCausalLM
+AutoTokenizer = transformers.AutoTokenizer
+AutoModel = transformers.AutoModel
 
 class LocalHuggingFaceEmbeddings:
     def __init__(self, model_path: str):
+        
         self.tokenizer = AutoTokenizer.from_pretrained(model_path)
         self.tokenizer.pad_token = self.tokenizer.eos_token
         self.model = AutoModel.from_pretrained(model_path)
@@ -32,7 +40,6 @@ class LocalHuggingFaceEmbeddings:
                 hidden_states = outputs.hidden_states[-1]  
                 batch_embeddings = hidden_states.mean(dim=1).tolist()
                 embeddings.extend(batch_embeddings)
-        
         return embeddings
 
     def embed_query(self, query: str) -> list[float]:
@@ -46,5 +53,7 @@ class LocalHuggingFaceEmbeddings:
 
 
 def embedding_function():
-    model_path = "multilingual-e5-small"  # Replace with your model's path
+    base_dir = os.path.dirname(os.path.abspath(__file__))
+    model_path = "multilingual-e5-small"
+    model_path = os.path.join(base_dir, model_path)
     return LocalHuggingFaceEmbeddings(model_path)

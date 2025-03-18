@@ -1,18 +1,32 @@
-from time import sleep
+# Import full modules for better PyInstaller compatibility
+import time
 import tkinter as tk
-from tkinter import scrolledtext, filedialog
+import tkinter.scrolledtext
+import tkinter.filedialog
 import torch
-from transformers import AutoTokenizer, AutoModelForCausalLM, pipeline
-from langchain_chroma import Chroma
-from langchain.prompts import PromptTemplate
+import transformers
+import langchain_chroma
+import langchain.prompts
 from populate_database import add_documents_to_chroma, clear_database
 from embedding import embedding_function
 import gc
+import os
+
+# Create aliases for frequently used classes/functions
+sleep = time.sleep
+scrolledtext = tkinter.scrolledtext
+filedialog = tkinter.filedialog
+AutoTokenizer = transformers.AutoTokenizer
+AutoModelForCausalLM = transformers.AutoModelForCausalLM
+pipeline = transformers.pipeline
+Chroma = langchain_chroma.Chroma
+PromptTemplate = langchain.prompts.PromptTemplate
 
 # LLM configuration and initialization
 #model_path = 'llama3.2-1b'  # Model identifier
 #model_path = 'Llama-3.2-3B'  # Model identifier
-model_path = 'Qwen2.5-1.5B'  # Model identifier
+current_dir = os.path.dirname(os.path.abspath(__file__))
+model_path = os.path.join(current_dir, "Qwen2.5-1.5B")  # 本地模型路径
 #model_path = 'Qwen2.5-3B'  # Model identifier
 if torch.cuda.is_available():
     device = torch.device('cuda')
