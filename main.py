@@ -54,7 +54,7 @@ current_font_size = default_font_size
 
 # Retrieve embedding model information
 def get_embedding_model_name():
-    return "multilingual-e5-large"
+    return "multilingual-e5-small"
 
 
 # Semantic search function with content filtering
