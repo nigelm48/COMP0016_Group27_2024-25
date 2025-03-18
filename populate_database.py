@@ -2,6 +2,7 @@ import argparse
 import os
 import shutil
 from langchain_community.document_loaders import PyPDFDirectoryLoader
+from langchain_community.document_loaders import PyPDFLoader  # Add this import
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain.schema.document import Document
 from embedding import embedding_function
@@ -93,8 +94,13 @@ def load_documents_from_directory(directory_path):
 
 
 def load_pdf(path):
-    document_loader = PyPDFDirectoryLoader(path)
-    return document_loader.load()
+    """Load PDF content from a file path or directory."""
+    if os.path.isfile(path):
+        document_loader = PyPDFLoader(path)
+        return document_loader.load()
+    else:
+        document_loader = PyPDFDirectoryLoader(path)
+        return document_loader.load()
 
 
 def load_md(path):
