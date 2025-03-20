@@ -26,7 +26,7 @@ PromptTemplate = langchain.prompts.PromptTemplate
 #model_path = 'llama3.2-1b'  # Model identifier
 #model_path = 'Llama-3.2-3B'  # Model identifier
 current_dir = os.path.dirname(os.path.abspath(__file__))
-model_path = os.path.join(current_dir, "Qwen2.5-1.5B")  # 本地模型路径
+model_path = os.path.join(current_dir, "Qwen2.5-1.5B")  
 #model_path = 'Qwen2.5-3B'  # Model identifier
 if torch.cuda.is_available():
     device = torch.device('cuda')
@@ -84,6 +84,8 @@ def retrieve_similar_documents(query, top_k=5):
 
     # Execute semantic similarity search
     results = db.similarity_search(query, k=top_k * retrieval_multiplier)
+    db._client._system.stop()
+    db=None
 
     # Apply content filtering if exclusion terms exist
     if do_not_include_items:
@@ -110,7 +112,6 @@ def retrieve_similar_documents(query, top_k=5):
                               f"Warning: Only {len(filtered_results)} documents remain after filtering, less than requested {top_k}\n",
                               "bot")
             output_box.see(tk.END)
-
         # Return filtered document content
         return [result.page_content for result in filtered_results[:top_k]]
     else:
@@ -292,12 +293,7 @@ def delete_database():
                 embedding_function=embedding_function()
             )
             
-            if hasattr(db, '_client'):
-                if hasattr(db._client, 'close'):
-                    db._client.close()
-                    output_box.insert(tk.END, "Database client connection closed.\n", "bot")
-            
-
+            db._client._system.stop()
             db = None
             gc.collect()
             time.sleep(0.5)  
