@@ -350,9 +350,9 @@ def on_closing():
         )
 
         # Terminate client connections
-        if hasattr(db, '_client'):
-            if hasattr(db._client, 'close'):
-                db._client.close()
+                    
+        db._client._system.stop()
+        db = None
 
         # Release embedding model resources
         try:
