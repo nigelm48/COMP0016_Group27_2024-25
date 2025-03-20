@@ -36,14 +36,14 @@ def add_documents_to_chroma(file_or_folder_path):
         print(f"📁 Processing folder: {file_or_folder_path}")
         documents = load_documents_from_directory(file_or_folder_path)
     else:
-        print(f"⚠️ Invalid path: {file_or_folder_path}")
+        print(f"Invalid path: {file_or_folder_path}")
         return
 
     if not documents:
-        print(f"⚠️ No content extracted from {file_or_folder_path}")
+        print(f"No content extracted from {file_or_folder_path}")
         return
 
-    print(f"✅ Loaded {len(documents)} document(s)")
+    print(f"Loaded {len(documents)} document(s)")
     chunks = split_documents(documents)
     add_to_chroma(chunks)
 
@@ -59,10 +59,10 @@ def load_single_file(file_path):
         elif ext in [".doc", ".docx"]:
             return load_doc(file_path)
         else:
-            print(f"❌ Unsupported file type: {ext}")
+            print(f" Unsupported file type: {ext}")
             return []
     except Exception as e:
-        print(f"⚠️ Error loading {file_path}: {e}")
+        print(f"Error loading {file_path}: {e}")
         return []
 
 
@@ -146,12 +146,14 @@ def add_to_chroma(chunks: list[Document]):
             new_chunks.append(chunk)
 
     if len(new_chunks):
-        print(f"👉 Adding new documents: {len(new_chunks)}")
+        print(f" Adding new documents: {len(new_chunks)}")
         new_chunk_ids = [chunk.metadata["id"] for chunk in new_chunks]
         db.add_documents(new_chunks, ids=new_chunk_ids)
     else:
-        print("✅ No new documents to add")
+        print(" No new documents to add")
 
+    db._client._system.stop()
+    db=None
 
 def calculate_chunk_ids(chunks):
 

@@ -84,6 +84,8 @@ def retrieve_similar_documents(query, top_k=5):
 
     # Execute semantic similarity search
     results = db.similarity_search(query, k=top_k * retrieval_multiplier)
+    db._client._system.stop()
+    db=None
 
     # Apply content filtering if exclusion terms exist
     if do_not_include_items:
@@ -110,7 +112,6 @@ def retrieve_similar_documents(query, top_k=5):
                               f"Warning: Only {len(filtered_results)} documents remain after filtering, less than requested {top_k}\n",
                               "bot")
             output_box.see(tk.END)
-
         # Return filtered document content
         return [result.page_content for result in filtered_results[:top_k]]
     else:
@@ -129,7 +130,7 @@ def generate_response(input_text, context=""):
     with torch.no_grad():
         outputs = model.generate(
             **inputs,
-            max_new_tokens=350,
+            max_new_tokens=200,
             temperature=0.7,
             top_p=0.9,
             num_beams=3,
@@ -292,12 +293,7 @@ def delete_database():
                 embedding_function=embedding_function()
             )
             
-            if hasattr(db, '_client'):
-                if hasattr(db._client, 'close'):
-                    db._client.close()
-                    output_box.insert(tk.END, "Database client connection closed.\n", "bot")
-            
-
+            db._client._system.stop()
             db = None
             gc.collect()
             time.sleep(0.5)  
@@ -354,9 +350,8 @@ def on_closing():
         )
 
         # Terminate client connections
-        if hasattr(db, '_client'):
-            if hasattr(db._client, 'close'):
-                db._client.close()
+        db._client._system.stop()
+        db = None
 
         # Release embedding model resources
         try:
