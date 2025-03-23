@@ -1,24 +1,40 @@
-from time import sleep
+# Import full modules for better PyInstaller compatibility
+import time
 import tkinter as tk
-from tkinter import scrolledtext, filedialog
+import tkinter.scrolledtext
+import tkinter.filedialog
 import torch
-from transformers import AutoTokenizer, AutoModelForCausalLM, pipeline
-from langchain_chroma import Chroma
-from langchain.prompts import PromptTemplate
+import transformers
+import langchain_chroma
+import langchain.prompts
 from populate_database import add_documents_to_chroma, clear_database
 from embedding import embedding_function
 import gc
+import os
+
+# Create aliases for frequently used classes/functions
+sleep = time.sleep
+scrolledtext = tkinter.scrolledtext
+filedialog = tkinter.filedialog
+AutoTokenizer = transformers.AutoTokenizer
+AutoModelForCausalLM = transformers.AutoModelForCausalLM
+pipeline = transformers.pipeline
+Chroma = langchain_chroma.Chroma
+PromptTemplate = langchain.prompts.PromptTemplate
 
 # LLM configuration and initialization
-model_path = 'Qwen2.5-3B'  # Model identifier
+#model_path = 'llama3.2-1b'  # Model identifier
+#model_path = 'Llama-3.2-3B'  # Model identifier
+current_dir = os.path.dirname(os.path.abspath(__file__))
+model_path = os.path.join(current_dir, "Qwen2.5-1.5B")  
+#model_path = 'Qwen2.5-3B'  # Model identifier
 if torch.cuda.is_available():
     device = torch.device('cuda')
 elif torch.mps.is_available():
     device = torch.device('mps')
 else:
     device = torch.device('cpu')
-# Alternative device detection method:
-# device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+
 
 tokenizer = AutoTokenizer.from_pretrained(model_path)
 model = AutoModelForCausalLM.from_pretrained(
@@ -38,7 +54,7 @@ generator = pipeline(
 llm = generator
 
 # Persistent storage directory for vector database
-CHROMA_PATH = "chroma"
+CHROMA_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "chroma")
 
 # Configure tokenizer to handle padding correctly
 if tokenizer.pad_token is None:
@@ -68,6 +84,8 @@ def retrieve_similar_documents(query, top_k=5):
 
     # Execute semantic similarity search
     results = db.similarity_search(query, k=top_k * retrieval_multiplier)
+    db._client._system.stop()
+    db=None
 
     # Apply content filtering if exclusion terms exist
     if do_not_include_items:
@@ -94,7 +112,6 @@ def retrieve_similar_documents(query, top_k=5):
                               f"Warning: Only {len(filtered_results)} documents remain after filtering, less than requested {top_k}\n",
                               "bot")
             output_box.see(tk.END)
-
         # Return filtered document content
         return [result.page_content for result in filtered_results[:top_k]]
     else:
@@ -260,34 +277,66 @@ def delete_database():
     )
 
     if confirmation:
+        output_box.insert(tk.END, "Attempting to clear database contents...\n", "bot")
+        output_box.see(tk.END)
+        root.update_idletasks()  # Force UI update
+        
+        abs_chroma_path = os.path.abspath(CHROMA_PATH)
+        output_box.insert(tk.END, f"Database path: {abs_chroma_path}\n", "bot")
+        
         try:
-            # Close active database connections
-            try:
-                db = Chroma(
-                    persist_directory=CHROMA_PATH,
-                    embedding_function=embedding_function()
-                )
-
-                # Properly terminate client connection
-                if hasattr(db, '_client'):
-                    if hasattr(db._client, 'close'):
-                        db._client.close()
-
-                # Release object references
-                db = None
-
-                # Force memory cleanup
-                gc.collect()
-            except Exception as e:
-                print(f"Error closing database connection: {e}")
-
-            # Execute database deletion
-            clear_database()
-
-            output_box.insert(tk.END, "Database cleared successfully.\n", "bot")
-            output_box.insert(tk.END, "Please restart the application for changes to take effect fully.\n", "bot")
+            output_box.insert(tk.END, "Closing database connections...\n", "bot")
+            root.update_idletasks()
+            
+            db = Chroma(
+                persist_directory=abs_chroma_path,
+                embedding_function=embedding_function()
+            )
+            
+            db._client._system.stop()
+            db = None
+            gc.collect()
+            time.sleep(0.5)  
+            
         except Exception as e:
-            output_box.insert(tk.END, f"Error clearing database: {str(e)}\n", "bot")
+            output_box.insert(tk.END, f"Warning during connection cleanup: {str(e)}\n", "bot")
+        
+        # Now delete contents 
+        success = False
+        try:
+            if os.path.exists(abs_chroma_path):
+                for item in os.listdir(abs_chroma_path):
+                    item_path = os.path.join(abs_chroma_path, item)
+                    try:
+                        if os.path.isfile(item_path):
+                            os.unlink(item_path)
+                            output_box.insert(tk.END, f"Deleted file: {item}\n", "bot")
+                        elif os.path.isdir(item_path):
+                            import shutil
+                            shutil.rmtree(item_path)
+                            output_box.insert(tk.END, f"Deleted directory: {item}\n", "bot")
+                    except Exception as e:
+                        output_box.insert(tk.END, f"Failed to delete {item}: {str(e)}\n", "bot")
+                
+                try:
+                    with open(os.path.join(abs_chroma_path, ".empty"), "w") as f:
+                        f.write("# This file ensures the chroma directory exists and is writable")
+                    success = True
+                except Exception as e:
+                    output_box.insert(tk.END, f"Warning: Could not write test file: {str(e)}\n", "bot")
+            else:
+                os.makedirs(abs_chroma_path, exist_ok=True)
+                success = True
+                output_box.insert(tk.END, "Created empty database directory.\n", "bot")
+        except Exception as e:
+            output_box.insert(tk.END, f"Error clearing database contents: {str(e)}\n", "bot")
+        
+        if success:
+            output_box.insert(tk.END, "Database contents cleared successfully.\n", "bot")
+        else:
+            output_box.insert(tk.END, "WARNING: Database may not be fully cleared.\n", "bot")
+            
+        output_box.insert(tk.END, "Please restart the application for changes to take effect fully.\n", "bot")
         output_box.see(tk.END)
 
 
@@ -301,9 +350,9 @@ def on_closing():
         )
 
         # Terminate client connections
-        if hasattr(db, '_client'):
-            if hasattr(db._client, 'close'):
-                db._client.close()
+                    
+        db._client._system.stop()
+        db = None
 
         # Release embedding model resources
         try:
