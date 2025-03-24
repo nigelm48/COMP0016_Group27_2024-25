@@ -25,15 +25,15 @@ def add_documents_to_chroma(file_or_folder_path):
     args, _ = parser.parse_known_args()  # Avoid GUI argparse errors
 
     if args.reset:
-        print("✨ Clearing Database")
+        print("Clearing Database")
         clear_database()
 
     # Determine if it's a file or a folder
     if os.path.isfile(file_or_folder_path):
-        print(f"📂 Processing single file: {file_or_folder_path}")
+        print(f"Processing single file: {file_or_folder_path}")
         documents = load_single_file(file_or_folder_path)
     elif os.path.isdir(file_or_folder_path):
-        print(f"📁 Processing folder: {file_or_folder_path}")
+        print(f"Processing folder: {file_or_folder_path}")
         documents = load_documents_from_directory(file_or_folder_path)
     else:
         print(f"Invalid path: {file_or_folder_path}")
