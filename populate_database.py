@@ -25,22 +25,22 @@ def add_documents_to_chroma(file_or_folder_path):
     args, _ = parser.parse_known_args()  # Avoid GUI argparse errors
 
     if args.reset:
-        print(" Clearing Database")
+        print("✨ Clearing Database")
         clear_database()
 
     # Determine if it's a file or a folder
     if os.path.isfile(file_or_folder_path):
-        print(f"Processing single file: {file_or_folder_path}")
+        print(f"📂 Processing single file: {file_or_folder_path}")
         documents = load_single_file(file_or_folder_path)
     elif os.path.isdir(file_or_folder_path):
-        print(f"Processing folder: {file_or_folder_path}")
+        print(f"📁 Processing folder: {file_or_folder_path}")
         documents = load_documents_from_directory(file_or_folder_path)
     else:
         print(f"Invalid path: {file_or_folder_path}")
         return
 
     if not documents:
-        print(f" No content extracted from {file_or_folder_path}")
+        print(f"No content extracted from {file_or_folder_path}")
         return
 
     print(f"Loaded {len(documents)} document(s)")
@@ -59,7 +59,7 @@ def load_single_file(file_path):
         elif ext in [".doc", ".docx"]:
             return load_doc(file_path)
         else:
-            print(f"Unsupported file type: {ext}")
+            print(f" Unsupported file type: {ext}")
             return []
     except Exception as e:
         print(f"Error loading {file_path}: {e}")
@@ -152,6 +152,8 @@ def add_to_chroma(chunks: list[Document]):
     else:
         print(" No new documents to add")
 
+    db._client._system.stop()
+    db=None
 
 def calculate_chunk_ids(chunks):
 
@@ -185,4 +187,3 @@ def calculate_chunk_ids(chunks):
 def clear_database():
     if os.path.exists(CHROMA_PATH):
         shutil.rmtree(CHROMA_PATH)
-
