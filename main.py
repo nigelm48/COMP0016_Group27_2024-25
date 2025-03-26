@@ -486,13 +486,13 @@ embedding_model_name = get_embedding_model_name()
 model_info_frame = tk.Frame(root)
 model_info_frame.grid(row=0, column=0, columnspan=2, padx=10, pady=5, sticky="nw")
 
-models_label = tk.Label(model_info_frame, text="Models:", font=("TkDefaultFont", 13, "bold"))
+models_label = tk.Label(model_info_frame, text="Models:", font=("TkDefaultFont", current_font_size+1, "bold"))
 models_label.pack(side=tk.LEFT, padx=5)
 
-llm_label = tk.Label(model_info_frame, text=f"LLM: {llm_model_name}", font=("TkDefaultFont", 13))
+llm_label = tk.Label(model_info_frame, text=f"LLM: {llm_model_name}", font=("TkDefaultFont", current_font_size+1))
 llm_label.pack(side=tk.LEFT, padx=5)
 
-embedding_label = tk.Label(model_info_frame, text=f"Embedding: {embedding_model_name}", font=("TkDefaultFont", 13))
+embedding_label = tk.Label(model_info_frame, text=f"Embedding: {embedding_model_name}", font=("TkDefaultFont", current_font_size+1))
 embedding_label.pack(side=tk.LEFT, padx=5)
 
 help_frame = tk.Frame(root)
@@ -510,7 +510,7 @@ output_box.grid(row=1, column=0, columnspan=2, padx=10, pady=10, sticky="nsew")
 
 # User input area
 input_box = tk.Text(root, height=3, font=("TkDefaultFont", current_font_size))
-input_box.grid(row=2, column=0, padx=10, pady=10, sticky="ew")
+input_box.grid(row=2, column=0, columnspan=2, padx=10, pady=10, sticky="ew")
 
 # Action button container
 button_bar = tk.Frame(root)
@@ -595,12 +595,15 @@ def remove_do_not_include_item():
 do_not_include_frame = tk.Frame(root)
 do_not_include_frame.grid(row=4, column=0, columnspan=2, padx=10, pady=5, sticky="nsew")
 
+do_not_include_frame.columnconfigure(1, weight=1)  # Make entry expand
+do_not_include_frame.rowconfigure(1, weight=1)     # Make listbox expand vertically
+
 # Input controls for exclusion items
 do_not_include_label = tk.Label(do_not_include_frame, text="Do Not Include Items:")
 do_not_include_label.grid(row=0, column=0, sticky="w")
 
-do_not_include_entry = tk.Entry(do_not_include_frame, width=40)
-do_not_include_entry.grid(row=0, column=1, padx=5)
+do_not_include_entry = tk.Entry(do_not_include_frame)
+do_not_include_entry.grid(row=0, column=1, padx=5, sticky="ew")  # Make entry expand horizontally
 
 add_item_btn = tk.Button(do_not_include_frame, text="Add", height=BUTTON_HEIGHT, command=add_do_not_include_item)
 add_item_btn.grid(row=0, column=2, padx=5)
@@ -608,13 +611,13 @@ add_item_btn.grid(row=0, column=2, padx=5)
 remove_item_btn = tk.Button(do_not_include_frame, text="Remove", height=BUTTON_HEIGHT, command=remove_do_not_include_item, fg="red")
 remove_item_btn.grid(row=0, column=3, padx=5)
 
-# Exclusion item display
+# Exclusion item display - make it responsive
 do_not_include_listbox = tk.Listbox(do_not_include_frame, height=5, selectmode=tk.EXTENDED)
 do_not_include_listbox.grid(row=1, column=0, columnspan=4, pady=5, sticky="nsew")
 
 # Filtering and sorting controls
 filter_controls_frame = tk.Frame(do_not_include_frame)
-filter_controls_frame.grid(row=2, column=0, columnspan=3, pady=5, sticky="nsew")
+filter_controls_frame.grid(row=2, column=0, columnspan=4, pady=5, sticky="ew")  # Make it span all columns
 
 filter_controls_frame.columnconfigure(1, weight=1)  # Make filter entry expand
 
@@ -622,21 +625,13 @@ filter_label = tk.Label(filter_controls_frame, text="Filter:")
 filter_label.grid(row=0, column=0, sticky="w", padx=(0, 5))
 
 filter_entry = tk.Entry(filter_controls_frame)
-filter_entry.grid(row=0, column=1, sticky="ew", padx=5)
+filter_entry.grid(row=0, column=1, sticky="ew", padx=5)  # Make it expand horizontally
 
 filter_btn = tk.Button(filter_controls_frame, text="Apply Filter", height=BUTTON_HEIGHT, command=filter_do_not_include_items)
-filter_btn.grid(row=0, column=2, padx=5, sticky="e")
+filter_btn.grid(row=0, column=2, padx=5)
 
 sort_btn = tk.Button(filter_controls_frame, text="Sort Items", height=BUTTON_HEIGHT, command=sort_do_not_include_items)
-sort_btn.grid(row=0, column=3, padx=5, sticky="e")
-
-# Configure exclusion panel layout
-do_not_include_frame.columnconfigure(1, weight=1)
-do_not_include_frame.rowconfigure(1, weight=1)
-
-# Configure responsive listbox
-do_not_include_listbox = tk.Listbox(do_not_include_frame, height=5)
-do_not_include_listbox.grid(row=1, column=0, columnspan=3, pady=5, sticky="nsew")
+sort_btn.grid(row=0, column=3, padx=5)
 
 # Set up window close handler
 root.protocol("WM_DELETE_WINDOW", on_closing)
