@@ -15,7 +15,7 @@ This could be done by pip install
 - Run main.py file
 - under project path:
 - git lfs install
-- git clone https://huggingface.co/Qwen/Qwen2.5-3B
+- git clone git clone https://huggingface.co/Qwen/Qwen2.5-1.5B
 - git clone https://huggingface.co/intfloat/multilingual-e5-small
 
 ## Alternative
