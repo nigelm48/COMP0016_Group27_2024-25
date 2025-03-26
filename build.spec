@@ -26,11 +26,16 @@ a = Analysis(
         (os.path.join(project_path, 'populate_database.py'), '.'),
         (os.path.join(project_path, 'Qwen2.5-1.5B'), 'Qwen2.5-1.5B'),  # Package model files
         (os.path.join(project_path, 'multilingual-e5-small'), 'multilingual-e5-small'),  # Package model files
+        (os.path.join(project_path, 'UCL-logo.png'), '.'),  # Include UCL logo
         (chromadb_path, 'chromadb')
     ],
     hiddenimports=[
         'embedding',
         'populate_database',
+
+        'PIL',
+        'Image',
+        'ImageTk',
         # LangChain components
         'langchain_community.document_loaders',
         'langchain_community.document_loaders.pdf',
