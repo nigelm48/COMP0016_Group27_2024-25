@@ -11,6 +11,7 @@ from populate_database import add_documents_to_chroma, clear_database
 from embedding import embedding_function
 import gc
 import os
+from PIL import Image, ImageTk
 
 # Create aliases for frequently used classes/functions
 sleep = time.sleep
@@ -64,7 +65,7 @@ if tokenizer.pad_token is None:
 conversation_history = []
 
 # Font size configuration
-default_font_size = 10
+default_font_size = 12
 current_font_size = default_font_size
 
 
@@ -383,6 +384,39 @@ def on_closing():
     root.destroy()
 
 
+def show_help():
+    # Create a new toplevel window for help
+    help_window = tk.Toplevel(root)
+    help_window.title("AI RAG Assistant Help")
+    help_window.geometry("700x500")
+    help_window.minsize(700, 700)
+    
+    # Create a scrollable text area for the help content
+    help_text = scrolledtext.ScrolledText(help_window, wrap=tk.WORD, 
+                                         font=("TkDefaultFont", current_font_size+2))
+    help_text.pack(fill=tk.BOTH, expand=True, padx=15, pady=15)
+    
+    # Add the help content
+    help_content = """# AI RAG Assistant Help
+
+## Overview
+This application uses Retrieval-Augmented Generation (RAG) to provide accurate answers from your documents.
+
+## Basic Features
+- **Load Folder**: Import multiple documents from a directory
+- **Load File**: Import a single document (PDF, Word, Markdown)
+- **Delete Database**: Remove all indexed documents
+- **Export Chat**: Save the current conversation to a text file
+"""
+    
+    help_text.insert(tk.END, help_content)
+    help_text.config(state=tk.DISABLED)  # Make read-only
+    
+    # Add a close button
+    close_btn = tk.Button(help_window, text="Close", height=BUTTON_HEIGHT,
+                         command=help_window.destroy)
+    close_btn.pack(pady=10)
+
 # Initialize main application window
 root = tk.Tk()
 root.title("AI RAG Assistant")
@@ -390,27 +424,59 @@ root.title("AI RAG Assistant")
 # Configure responsive window sizing
 screen_width = root.winfo_screenwidth()
 screen_height = root.winfo_screenheight()
-root.geometry(f"{int(screen_width * 0.99)}x{int(screen_height * 0.99)}")
-root.minsize(600, 400)
+root.geometry(f"{int(screen_width * 0.75)}x{int(screen_height * 0.75)}")
+root.minsize(900, 700)
 
 # Configure layout responsiveness
 root.columnconfigure(0, weight=1)
 root.rowconfigure(1, weight=1)
 
-# Font size control panel
+# Create a logo frame at the top right
+logo_frame = tk.Frame(root)
+logo_frame.grid(row=0, column=0, columnspan=2, padx=10, pady=5, sticky="ne")
+
+# Load and display the logo
+try:
+    # Path to your logo image - adjust the filename to match your logo
+    logo_path = os.path.join(current_dir, "UCL-logo.png")
+    
+    # Open and resize the image
+    logo_image = Image.open(logo_path)
+    # Resize while maintaining aspect ratio
+    logo_width = 120  # Set your desired width
+    aspect_ratio = logo_image.width / logo_image.height
+    logo_height = int(logo_width / aspect_ratio)
+    logo_image = logo_image.resize((logo_width, logo_height), Image.Resampling.LANCZOS)
+    
+    # Convert to PhotoImage for tkinter
+    logo_tk = ImageTk.PhotoImage(logo_image)
+    
+    # Create label to display logo
+    logo_label = tk.Label(logo_frame, image=logo_tk)
+    logo_label.image = logo_tk  # Keep reference to prevent garbage collection
+    logo_label.pack()
+    
+except Exception as e:
+    print(f"Error loading logo: {e}")
+
+# Font size control panel - now below the logo
 controls_frame = tk.Frame(root)
-controls_frame.grid(row=0, column=0, columnspan=2, padx=10, pady=5, sticky="ne")
+controls_frame.grid(row=0, column=0, columnspan=2, padx=10, pady=(logo_height + 15, 5), sticky="ne")
 
 font_label = tk.Label(controls_frame, text="Font Size:")
 font_label.pack(side=tk.LEFT, padx=5)
 
-decrease_font_btn = tk.Button(controls_frame, text="-", width=2, command=lambda: change_font_size(-1))
+# Define a standard button height for the application
+BUTTON_HEIGHT = 2
+
+# Modify the font size control buttons
+decrease_font_btn = tk.Button(controls_frame, text="-", width=2, height=BUTTON_HEIGHT, command=lambda: change_font_size(-1))
 decrease_font_btn.pack(side=tk.LEFT, padx=2)
 
-reset_font_btn = tk.Button(controls_frame, text="Reset", command=lambda: change_font_size(0))
+reset_font_btn = tk.Button(controls_frame, text="Reset", height=BUTTON_HEIGHT, command=lambda: change_font_size(0))
 reset_font_btn.pack(side=tk.LEFT, padx=2)
 
-increase_font_btn = tk.Button(controls_frame, text="+", width=2, command=lambda: change_font_size(1))
+increase_font_btn = tk.Button(controls_frame, text="+", width=2, height=BUTTON_HEIGHT, command=lambda: change_font_size(1))
 increase_font_btn.pack(side=tk.LEFT, padx=2)
 
 # Model information display
@@ -420,14 +486,20 @@ embedding_model_name = get_embedding_model_name()
 model_info_frame = tk.Frame(root)
 model_info_frame.grid(row=0, column=0, columnspan=2, padx=10, pady=5, sticky="nw")
 
-models_label = tk.Label(model_info_frame, text="Models:", font=("TkDefaultFont", 9, "bold"))
+models_label = tk.Label(model_info_frame, text="Models:", font=("TkDefaultFont", 13, "bold"))
 models_label.pack(side=tk.LEFT, padx=5)
 
-llm_label = tk.Label(model_info_frame, text=f"LLM: {llm_model_name}", font=("TkDefaultFont", 9))
+llm_label = tk.Label(model_info_frame, text=f"LLM: {llm_model_name}", font=("TkDefaultFont", 13))
 llm_label.pack(side=tk.LEFT, padx=5)
 
-embedding_label = tk.Label(model_info_frame, text=f"Embedding: {embedding_model_name}", font=("TkDefaultFont", 9))
+embedding_label = tk.Label(model_info_frame, text=f"Embedding: {embedding_model_name}", font=("TkDefaultFont", 13))
 embedding_label.pack(side=tk.LEFT, padx=5)
+
+help_frame = tk.Frame(root)
+help_frame.grid(row=0, column=0, padx=10, pady=(80, 5), sticky="nw")
+
+help_btn = tk.Button(help_frame, text="Help", height=BUTTON_HEIGHT, command=show_help)
+help_btn.pack(side=tk.LEFT, padx=5)
 
 # Chat display area
 output_box = scrolledtext.ScrolledText(root, wrap=tk.WORD, height=20, width=60,
@@ -438,28 +510,27 @@ output_box.grid(row=1, column=0, columnspan=2, padx=10, pady=10, sticky="nsew")
 
 # User input area
 input_box = tk.Text(root, height=3, font=("TkDefaultFont", current_font_size))
-input_box.grid(row=2, column=0, padx=10, pady=5, sticky="ew")
+input_box.grid(row=2, column=0, padx=10, pady=10, sticky="ew")
 
 # Action button container
 button_bar = tk.Frame(root)
 button_bar.grid(row=3, column=0, columnspan=2, padx=10, pady=5, sticky="ew")
 
 # Action buttons
-browse_button = tk.Button(button_bar, text="Load Folder", command=browse_folder)
+browse_button = tk.Button(button_bar, text="Load Folder", height=BUTTON_HEIGHT, command=browse_folder)
 browse_button.pack(side=tk.LEFT, padx=5, expand=True)
 
 # Add "Load File" button
-load_file_button = tk.Button(button_bar, text="Load File", command=browse_file)
+load_file_button = tk.Button(button_bar, text="Load File", height=BUTTON_HEIGHT, command=browse_file)
 load_file_button.pack(side=tk.LEFT, padx=5, expand=True)
 
-
-delete_db_button = tk.Button(button_bar, text="Delete Database", command=delete_database, fg="red")
+delete_db_button = tk.Button(button_bar, text="Delete Database", height=BUTTON_HEIGHT, command=delete_database, fg="red")
 delete_db_button.pack(side=tk.LEFT, padx=5, expand=True)
 
-export_button = tk.Button(button_bar, text="Export Chat", command=export_conversation)
+export_button = tk.Button(button_bar, text="Export Chat", height=BUTTON_HEIGHT, command=export_conversation)
 export_button.pack(side=tk.LEFT, padx=5, expand=True)
 
-send_button = tk.Button(button_bar, text="Send", command=send_query)
+send_button = tk.Button(button_bar, text="Send", height=BUTTON_HEIGHT, command=send_query)
 send_button.pack(side=tk.LEFT, padx=5, expand=True)
 
 # Layout weight configuration
@@ -531,10 +602,10 @@ do_not_include_label.grid(row=0, column=0, sticky="w")
 do_not_include_entry = tk.Entry(do_not_include_frame, width=40)
 do_not_include_entry.grid(row=0, column=1, padx=5)
 
-add_item_btn = tk.Button(do_not_include_frame, text="Add", command=add_do_not_include_item)
+add_item_btn = tk.Button(do_not_include_frame, text="Add", height=BUTTON_HEIGHT, command=add_do_not_include_item)
 add_item_btn.grid(row=0, column=2, padx=5)
 
-remove_item_btn = tk.Button(do_not_include_frame, text="Remove", command=remove_do_not_include_item, fg="red")
+remove_item_btn = tk.Button(do_not_include_frame, text="Remove", height=BUTTON_HEIGHT, command=remove_do_not_include_item, fg="red")
 remove_item_btn.grid(row=0, column=3, padx=5)
 
 # Exclusion item display
@@ -553,10 +624,10 @@ filter_label.grid(row=0, column=0, sticky="w", padx=(0, 5))
 filter_entry = tk.Entry(filter_controls_frame)
 filter_entry.grid(row=0, column=1, sticky="ew", padx=5)
 
-filter_btn = tk.Button(filter_controls_frame, text="Apply Filter", command=filter_do_not_include_items)
+filter_btn = tk.Button(filter_controls_frame, text="Apply Filter", height=BUTTON_HEIGHT, command=filter_do_not_include_items)
 filter_btn.grid(row=0, column=2, padx=5, sticky="e")
 
-sort_btn = tk.Button(filter_controls_frame, text="Sort Items", command=sort_do_not_include_items)
+sort_btn = tk.Button(filter_controls_frame, text="Sort Items", height=BUTTON_HEIGHT, command=sort_do_not_include_items)
 sort_btn.grid(row=0, column=3, padx=5, sticky="e")
 
 # Configure exclusion panel layout
