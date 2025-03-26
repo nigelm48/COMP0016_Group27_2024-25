@@ -417,10 +417,17 @@ This application uses Retrieval-Augmented Generation (RAG) to provide accurate a
 - **Filter**: Search for specific items in the exclusion list
 - **Sort**: Arrange items in alphabetical order
 
-##prompt recommendations
-- **No prompting is specifically required, as they would downgrade the overall performance of the model.
-- ** However, please contain as much as keywords you want to search for in the document in the query.
-- ** The model will try to find the most relevant information based on the query and the do-not-include-items.
+## Prompt Recommendations
+- **No prompting is specifically required, as they would downgrade the overall performance of the model.**
+- **However, please include as many keywords as possible in your query to improve search relevance.**
+- **The model will try to find the most relevant information based on the query and the do-not-include-items.**
+
+## Example Usage
+- **Question**: What happened in Ghana?  //this should only be asked when the number of ducuments is small
+  **Answer**: In Ghana, people struggle with speech articulation due to various conditions, making it difficult for them to be understood by others. The use of Automatic Speech Recognition (ASR) software, such as Google's "Talk-to-Text" feature, can help improve communication by enabling listeners to better understand the speaker. This technology has the potential to bridge the communication gap and enhance the quality of life for those affected by speech and language difficulties. Additionally, it can facilitate access to information and services that may have been previously inaccessible to them. The study highlights the importance of considering the local context and infrastructure when implementing such technologies, particularly in low-income countries like Ghana where internet connectivity and data costs can pose significant challenges. By understanding the needs and experiences of users, researchers and developers can design more effective and accessible solutions that address the unique challenges faced by individuals in these communities.
+
+- **Question**: What will researchers do if the participant doesn't have a phone?  
+  **Answer**: Researchers will provide the smartphone to them. They will also provide compensation to those who already have a suitable smartphone. The compensation will be approximately $120. The researchers also ensured that the participation is voluntary, participants can withdraw from the experiment at any time, they can keep the provided smartphone or compensation and their participation will not impact their future speech and language therapy (SLT) services. Additionally, the researchers will help them use the app if they need assistance and will support them in getting their voice heard by lobbying for the changes they requested. The participants will have an onboarding session with researchers at their office or at a location of their choice, where they will discuss their communication difficulties and how they currently use their mobile devices. This session will last for about 30 minutes. During this session, a researcher will explain the purpose and procedures of this study and answer any questions they may have. After the session is completed, researchers and participants sign an informed consent form.
 """
     
     help_text.insert(tk.END, help_content)
