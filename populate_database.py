@@ -99,13 +99,40 @@ def load_documents_from_directory(directory_path):
     return all_documents
 
 def load_pdf(path):
-    """Load PDF content from a file path or directory."""
-    if os.path.isfile(path):
-        document_loader = PyPDFLoader(path)
-        return document_loader.load()
-    else:
-        document_loader = PyPDFDirectoryLoader(path)
-        return document_loader.load()
+    """
+    Load PDF content from a file path or directory with robust error handling.
+    
+    Args:
+        path (str): Path to a PDF file or directory containing PDF files
+    
+    Returns:
+        list: List of loaded PDF documents, or an empty list if loading fails
+    """
+    try:
+        if os.path.isfile(path):
+            try:
+                document_loader = PyPDFLoader(path)
+                return document_loader.load()
+            except Exception as file_error:
+                print(f"Error loading PDF file {path}: {file_error}")
+                # You can add more specific error handling here if needed
+                return []
+        else:
+            try:
+                document_loader = PyPDFDirectoryLoader(path)
+                pdf_docs = document_loader.load()
+                
+                # Additional check to handle empty directory or no valid PDFs
+                if not pdf_docs:
+                    print(f"No PDF documents found in directory: {path}")
+                
+                return pdf_docs
+            except Exception as dir_error:
+                print(f"Error loading PDF directory {path}: {dir_error}")
+                return []
+    except Exception as general_error:
+        print(f"Unexpected error processing PDFs at {path}: {general_error}")
+        return []
 
 def load_md(path):
     document_loader = UnstructuredMarkdownLoader(path)
@@ -144,6 +171,7 @@ def add_to_chroma(chunks: list[Document]):
     for chunk in chunks_with_ids:
         if chunk.metadata["id"] not in existing_ids:
             new_chunks.append(chunk)
+            print(f" Adding new document: {chunk.metadata['id']}")
 
     if len(new_chunks):
         print(f" Adding new documents: {len(new_chunks)}")
