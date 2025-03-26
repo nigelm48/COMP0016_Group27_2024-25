@@ -162,7 +162,7 @@ def change_font_size(delta=0):
     input_box.config(font=("TkDefaultFont", current_font_size))
 
     # Scale model info labels proportionally
-    info_font_size = max(7, int(current_font_size * 0.7))
+    info_font_size = max(7, int(current_font_size))
     models_label.config(font=("TkDefaultFont", info_font_size, "bold"))
     llm_label.config(font=("TkDefaultFont", info_font_size))
     embedding_label.config(font=("TkDefaultFont", info_font_size))
@@ -407,6 +407,20 @@ This application uses Retrieval-Augmented Generation (RAG) to provide accurate a
 - **Load File**: Import a single document (PDF, Word, Markdown)
 - **Delete Database**: Remove all indexed documents
 - **Export Chat**: Save the current conversation to a text file
+- **Send**: Process your query and get an AI response
+- **Font Size**: Adjust text size for better readability
+- **Search**: Find text in the chat history
+
+## Do-not-include Items
+- **Add**: Enter keywords to exclude from search results
+- **Remove**: Select and remove items from the exclusion list
+- **Filter**: Search for specific items in the exclusion list
+- **Sort**: Arrange items in alphabetical order
+
+##prompt recommendations
+- **No prompting is specifically required, as they would downgrade the overall performance of the model.
+- ** However, please contain as much as keywords you want to search for in the document in the query.
+- ** The model will try to find the most relevant information based on the query and the do-not-include-items.
 """
     
     help_text.insert(tk.END, help_content)
@@ -416,6 +430,82 @@ This application uses Retrieval-Augmented Generation (RAG) to provide accurate a
     close_btn = tk.Button(help_window, text="Close", height=BUTTON_HEIGHT,
                          command=help_window.destroy)
     close_btn.pack(pady=10)
+
+
+def search_text():
+    """Search for text"""
+    # Clear previous highlights
+    start_pos = "1.0"
+    while True:
+        tag_range = output_box.tag_nextrange("search", start_pos)
+        if not tag_range:
+            break
+        output_box.tag_remove("search", tag_range[0], tag_range[1])
+        start_pos = tag_range[1]
+    # Perform new search
+    search_term = search_entry.get().strip()
+    if not search_term:
+        return
+    output_box.tag_configure("search", background="orange", foreground="black")
+    start_pos = "1.0"
+    matches_counter = 0
+    while True:
+        start_pos = output_box.search(search_term, start_pos, tk.END, nocase=1)
+        if not start_pos:
+            break
+        end_pos = f"{start_pos}+{len(search_term)}c"
+        # Apply highlight tag
+        output_box.tag_add("search", start_pos, end_pos)
+        matches_counter += 1
+        start_pos = end_pos
+    
+    search_status.config(text=f"Total: {matches_counter} matches")
+    if matches_counter > 0:
+        output_box.see("search.first")
+        output_box.tag_add(tk.SEL, "search.first", "search.first lineend")
+
+def search_navigation(direction="next"):
+    """Navigate to the next or previous search match based on the direction"""
+    # Get current insert position
+    current_pos = output_box.index(tk.INSERT)
+    
+    try:
+        if direction == "next":
+            match = output_box.tag_nextrange("search", current_pos)
+            if not match:
+                # Wrap around to the first match if no more matches are found
+                match = output_box.tag_nextrange("search", "1.0")
+        elif direction == "prev":
+            match = output_box.tag_prevrange("search", current_pos)
+            if not match:
+                # Wrap around to the last match if no more matches are found
+                match = output_box.tag_prevrange("search", tk.END)
+        else:
+            raise ValueError("Invalid direction. Use 'next' or 'prev'.")
+        
+        if match:
+            output_box.see(match[0])
+            output_box.mark_set(tk.INSERT, match[0])
+    except Exception as e:
+        pass
+
+def search_next():
+    search_navigation(direction="next")
+
+def search_prev():
+    search_navigation(direction="prev")
+
+def clear_search():
+    """Clear search"""
+    start_pos = "1.0"
+    while True:
+        tag_range = output_box.tag_nextrange("search", start_pos)
+        if not tag_range:
+            break
+        output_box.tag_remove("search", tag_range[0], tag_range[1])
+        start_pos = tag_range[1]    
+    search_entry.delete(0, tk.END)
+    search_status.config(text="")
 
 # Initialize main application window
 root = tk.Tk()
@@ -495,13 +585,41 @@ llm_label.pack(side=tk.LEFT, padx=5)
 embedding_label = tk.Label(model_info_frame, text=f"Embedding: {embedding_model_name}", font=("TkDefaultFont", current_font_size+1))
 embedding_label.pack(side=tk.LEFT, padx=5)
 
+# Create search frame 
+search_frame = tk.Frame(root)
+search_frame.grid(row=0, column=0, padx=10, pady=(50, 5), sticky="nw")  
+
+# Search label
+search_label = tk.Label(search_frame, text="Search:")
+search_label.pack(side=tk.LEFT, padx=(0, 5))
+
+# Search entry
+search_entry = tk.Entry(search_frame, width=20)
+search_entry.pack(side=tk.LEFT, padx=5)
+# Search buttons
+search_btn = tk.Button(search_frame, text="Find", height=1, command=search_text)
+search_btn.pack(side=tk.LEFT, padx=2)
+
+prev_btn = tk.Button(search_frame, text="<-", height=1, width=2, command=search_prev)
+prev_btn.pack(side=tk.LEFT, padx=2)
+
+next_btn = tk.Button(search_frame, text="->", height=1, width=2, command=search_next)
+next_btn.pack(side=tk.LEFT, padx=2)
+
+clear_btn = tk.Button(search_frame, text="Clear", height=1, command=clear_search)
+clear_btn.pack(side=tk.LEFT, padx=2)
+
+search_status = tk.Label(search_frame, text="", width=12)
+search_status.pack(side=tk.LEFT, padx=5)
+
+# Help frame now positioned BELOW the search frame
 help_frame = tk.Frame(root)
-help_frame.grid(row=0, column=0, padx=10, pady=(80, 5), sticky="nw")
+help_frame.grid(row=0, column=0, padx=10, pady=(110, 5), sticky="nw")  # More padding to push it down
 
 help_btn = tk.Button(help_frame, text="Help", height=BUTTON_HEIGHT, command=show_help)
 help_btn.pack(side=tk.LEFT, padx=5)
 
-# Chat display area
+# Chat display area - REMOVE the duplicate search frame that was here previously
 output_box = scrolledtext.ScrolledText(root, wrap=tk.WORD, height=20, width=60,
                                        font=("TkDefaultFont", current_font_size))
 output_box.tag_config("user", foreground="blue")
