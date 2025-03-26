@@ -33,7 +33,7 @@ a = Analysis(
         'embedding',
         'populate_database',
 
-        'PIL',
+        'pillow',
         'Image',
         'ImageTk',
         # LangChain components
