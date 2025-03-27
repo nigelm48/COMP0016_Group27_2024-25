@@ -1,12 +1,5 @@
 # COMP0016_Group27_2024-25
 
-## Prerequisites
-- Python
-- torch
-- transformers langchain langchain-community chromadb
-- tkinter
-
-This could be done by pip install
 
 ## How to Run
 Operating System: Windows, macOS
@@ -35,11 +28,14 @@ multilingual-e5-small
 COMP0016_Group27_2024-25/
 ├── multilingual-e5-small/       # Directory containing the multilingual-e5-small model files
 ├── Qwen2.5-1.5B/                # Directory containing the Qwen2.5-1.5B model files
+
                 
-Install required Python libraries:
-pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121
-pip install transformers langchain langchain-community chromadb
-pip install transformers
+# Python libraries requirement
+All the libraries required are listed in requirement.txt
+User can run command: 
+pip install -r requirements.txt
+to install all the libraries needed.
+
 pip install tkinter
 For CUDA: Ensure your system uses a Python version >= 3.9 and your environment supports CUDA.
 Run the main application:
