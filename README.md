@@ -2,8 +2,11 @@
 
 # Python libraries requirement
 All the libraries required are listed in requirement.txt
+
 User can run command: 
+
 pip install -r requirements.txt
+
 to install all the libraries needed.
 
 
