@@ -20,18 +20,17 @@ Extract files and navigate to the directory.
 Run the executable.
 
 
-Installation Steps (CUDA Accelerated):
-Download and install the latest NVIDIA driver and CUDA toolkit compatible with your GPU from: https://developer.nvidia.com/cuda-downloads
-Clone the project repository:
-git clone https://github.com/nigelm48/COMP0016_Group27_2024-25.git
-Navigate to the project directory:
+- Installation Steps (CUDA Accelerated):
+- Download and install the latest NVIDIA driver and CUDA toolkit compatible with your GPU from: https://developer.nvidia.com/cuda-downloads
+- Clone the project repository:
+- git clone https://github.com/nigelm48/COMP0016_Group27_2024-25.git
+- Navigate to the project directory:
 cd COMP0016_Group27_2024-25
-Switch to the Windows executable branch:
-git checkout exe-windows
-Manually download the required models from Hugging Face:
+git checkout main
+- Manually download the required models from Hugging Face:
 Qwen2.5-1.5B
 multilingual-e5-small
-Place the downloaded model directories inside the project root directory, maintaining the following structure:
+-Place the downloaded model directories inside the project root directory, maintaining the following structure:
 
 COMP0016_Group27_2024-25/
 ├── multilingual-e5-small/       # Directory containing the multilingual-e5-small model files
