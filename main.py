@@ -85,7 +85,6 @@ def retrieve_similar_documents(query, top_k=5):
 
     # Execute semantic similarity search
     results = db.similarity_search(query, k=top_k * retrieval_multiplier)
-    db._client._system.stop()
     db=None
 
     # Apply content filtering if exclusion terms exist

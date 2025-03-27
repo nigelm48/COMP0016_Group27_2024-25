@@ -179,7 +179,6 @@ def add_to_chroma(chunks: list[Document]):
     else:
         print(" No new documents to add")
 
-    db._client._system.stop()
     db=None
 
 def calculate_chunk_ids(chunks):
