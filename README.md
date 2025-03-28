@@ -1,4 +1,4 @@
-# COMP0016_Group27_2024-25
+# COMP0016_Group27_2024-25 Phase 1
 
 # Python libraries requirement
 All the libraries required are listed in requirement.txt
