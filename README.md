@@ -6,6 +6,8 @@ All the libraries required are listed in requirement.txt
 User can run command: 
 
 pip install -r requirements.txt
+CATION the requirements.txt has bugs 
+please manual pip install
 
 to install all the libraries needed.
 
